@@ -1,5 +1,7 @@
 # From sales opportunity to organization onboarding
 
+Status: Proposed. Delivery is tracked in [issue #2](https://github.com/milo-os/crm/issues/2).
+
 Give our sales team a simple way to manage customer relationships in Milo and help customers get started. Staff can track Companies, the People they’re talking with, and Opportunities, then invite a customer to set up their organization.
 
 Sales fills in what they already know. The customer reviews those details, completes what’s missing, and gets immediate access.
@@ -50,3 +52,15 @@ Staff manage follow-up using onboarding progress and the resend option. Automati
 When onboarding finishes, Milo notifies the opportunity owner and shows completion on the Company and Opportunity. The organization remains linked to both.
 
 The Opportunity’s stage stays unchanged, since completing onboarding and closing a sale may happen at different times.
+
+## First-version checklist
+
+- Staff can manage Companies, People, and Opportunities and see existing organizations and unfinished onboarding.
+- Authorized staff can prepare details and invite a customer at any Opportunity stage.
+- Customers can review and correct details, save progress, and complete Milo’s existing onboarding requirements and agreements.
+- Completing onboarding gives the customer immediate access as the first administrator, without manual review.
+- Resending or replacing an invitation continues the same onboarding. Replacement preserves saved organization details and disables the old invitation.
+- Staff can follow progress and manage follow-up. Automatic reminders are outside the first version.
+- Completion notifies the opportunity owner and connects the organization to the Company and Opportunity without changing the Opportunity stage.
+
+Approving this enhancement agrees on the product direction. The tracking issue stays open until the functionality is delivered.
