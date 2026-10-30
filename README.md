@@ -5,3 +5,7 @@ Manage customer relationships and help customers get started with Milo.
 ## Product enhancements
 
 - [From sales opportunity to organization onboarding](docs/enhancements/opportunity-led-onboarding.md)
+
+## Technical design
+
+- [Native Milo API and onboarding system design](docs/design/opportunity-led-onboarding.md)
