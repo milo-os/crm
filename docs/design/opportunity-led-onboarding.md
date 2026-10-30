@@ -1,6 +1,6 @@
 # Native Milo API and onboarding system design
 
-Status: Proposed. This document describes the implementation direction, not functionality already available in CRM. API examples and condition names are proposals until the contracts are implemented.
+Status: Proposed. This document describes the implementation direction, not functionality already available in CRM. CRM API examples are proposals. Existing Milo and Billing APIs are identified separately below.
 
 Product scope: [From sales opportunity to organization onboarding](../enhancements/opportunity-led-onboarding.md). Delivery: [issue #2](https://github.com/milo-os/crm/issues/2).
 
@@ -67,7 +67,7 @@ spec:
     paymentArrangement: Invoice
 ```
 
-The billing block is abbreviated: billing contact details and currency must follow Billing's contract. CRM stores a draft, not payment credentials. Card collection uses the existing billing/provider flow.
+The billing block is a CRM draft choice, not a proposed field on BillingAccount. Billing contact details and currency follow Billing’s existing contract. For Invoice, CRM creates a BillingArrangement for the account; Card uses the existing payment-method flow. CRM stores no payment credentials.
 
 Example invitation:
 
@@ -131,22 +131,24 @@ Notify the Opportunity owner once completion occurs, link the resulting organiza
 
 Authorized staff select `Card` or `Invoice` before sending. Use Card as the default. The one staff onboarding permission includes this choice for the first version. Customers can correct billing contact details but cannot change the arrangement. The service records who authorized invoicing and when; neither a forged field nor a customer-created BillingAccount may grant invoice eligibility.
 
-CRM passes the chosen arrangement and trusted authorization to Billing through a restricted integration. Once created, the BillingAccount is the source of truth. Freeze the choice in this onboarding flow; subsequent arrangement changes belong to a separately authorized billing workflow. Do not continuously overwrite billing policy from a stale CRM draft.
+CRM reconciles the customer's BillingAccount and, for Invoice, an existing `billing.miloapis.com/v1alpha1` `BillingArrangement` with `spec.type: Invoice`. Leave `applicationRef` unset: Billing explicitly supports this sales-led grant without a customer application or another review. Use a stable arrangement identity tied to onboarding so retries do not create overlapping arrangements.
 
-Propose a billing-owned `ReadyForUse` condition:
+The arrangement is the billing policy source of truth; Billing publishes its customer-visible terms on `BillingAccount.status.paymentArrangement`. Freeze the selection in the onboarding flow and do not overwrite later billing changes from a stale CRM draft. Card onboarding does not create an Invoice arrangement.
 
-| Arrangement | Readiness requirements |
-| --- | --- |
-| Card | Required billing details are complete, the account is usable, and its default payment method is ready |
-| Invoice | Required billing details are complete, the account is usable, and invoicing was authorized by staff; no payment method is required |
+Consume the existing billing-owned `PaymentReady` condition:
 
-Billing defines account usability, including relevant suspension and invoice-health constraints. Resource Manager consumes this condition for the designated onboarding billing account instead of directly requiring `DefaultPaymentMethodReady`. CRM must not set Organization readiness itself or treat any unrelated ready billing account as satisfying the journey.
+| Customer choice | Existing Billing behavior | CRM responsibility |
+| --- | --- | --- |
+| Card | An active default payment method can make `PaymentReady=True` | Complete billing details and the existing payment-method setup flow |
+| Invoice | An active Invoice BillingArrangement can make `PaymentReady=True` without a card | Create the authorized arrangement with standard terms and wait for reconciliation |
 
-Keep `DefaultPaymentMethodReady` truthful for invoice accounts: it can remain false when no payment method exists. Existing `InvoicingReady` describes invoice payment health, not permission to use invoice billing, and must not be repurposed as authorization. Billing and provider consumers must honor the arrangement so invoice customers are not routed into card-only charge processing.
+Milo's current organization onboarding controller already checks `PaymentReady`, with a `DefaultPaymentMethodReady` fallback for older Billing deployments. No new `ReadyForUse` condition or invoice-specific Resource Manager readiness implementation is needed. CRM checks the designated onboarding billing account as well as organization readiness: the existing organization controller accepts any qualifying billing account in the organization.
 
-Invoice customers use Billing's standard terms. The inspected Billing API currently defaults to net 30 and monthly invoices; the UI should use Billing's effective terms rather than hard-code those defaults. Custom terms and credit limits are outside CRM v1. Staff authorization happens before invitation, so invoice onboarding has no additional manual review.
+`PaymentReady` means the account has a way to pay; it is not an aggregate of every account, contact, suspension, or invoice-health requirement. Keep validation of required details and account/access eligibility explicit. `InvoicingReady` continues to describe invoice payment health, and `DefaultPaymentMethodReady` can remain false for invoice customers. A scheduled or pending arrangement alone does not qualify; wait for an active arrangement. For the Invoice choice, verify that the expected arrangement is active rather than treating an unrelated card as proof it was granted.
 
-Introduce the new arrangement with backward-compatible Card semantics for existing accounts. Billing must publish the new readiness condition before Resource Manager relies on it. Unknown or missing readiness remains pending rather than allowing onboarding to complete. Verify existing card onboarding during rollout.
+BillingAccount standard terms are net 30, monthly, on the first; use Billing's published effective terms in the UI. The existing BillingArrangement also requires an internal reason and an invoice credit limit. Proposed v1 integration: use a centrally configured, finance-approved credit-limit default in the account currency, and generate the internal reason from the staff-authorized onboarding reference. Capture the authenticated staff actor in the audit trail. Finance must establish the default before invoice invitations are enabled; do not invent an amount or use zero as an unlimited sentinel. Editing custom terms or credit limits remains outside CRM v1.
+
+Verify the deployed Billing and Milo versions provide these existing contracts. The source describes the compatibility fallback as removable once environments use Billing v0.3.10 or later; deployment state and provider invoice collection behavior still need integration verification. Keep missing or unknown required readiness pending. Staff authorization occurs before invitation, with no customer application or manual review added to onboarding.
 
 ## Access and invitation security
 
@@ -154,26 +156,51 @@ One staff-facing onboarding permission covers preparing, sending, resending, rep
 
 Recipients receive a limited projection of their current onboarding, not general CRM access. Omit sales notes, Opportunity details, other People, and internal authorization data. Enforce field-level restrictions server-side, including after an invitation has been redeemed. Record agreement version, authenticated User, and acceptance time separately from reusable organization details.
 
-Use expiring, revocable invitation credentials; store only a verifier in restricted state and keep raw credentials out of readable CRM fields, status, and logs. Email payloads that contain the link also require restricted access. Reuse Milo authentication for account creation and email verification; verify platform eligibility explicitly so a new invited user does not encounter an unrelated manual access approval. Redemption establishes a scoped session, while the current invitation generation remains authoritative for revocation.
+Use expiring, revocable invitation credentials; store only a verifier in restricted state and keep raw credentials out of readable CRM fields, status, and logs. Email payloads that contain the link also require restricted access. Reuse Milo authentication for account creation and require a verified matching email explicitly at redemption. The platform’s email-verification enforcement is feature-gated and defaults off, so authentication alone is insufficient evidence. Redemption establishes a scoped session, while the current invitation generation remains authoritative for revocation.
 
-## Existing foundations and required changes
+## Platform access and first administrator
 
-These source references describe the locally inspected APIs, not new functionality already implemented:
+Use the existing `PlatformAccess` resource as the authority for platform eligibility. It has Pending, Approved, Rejected, and Suspended states; the User controller derives access from it. The PlatformInvitation controller handles invitation email delivery and is not proof of approval. Do not build new work on the legacy PlatformAccessApproval resources.
 
-- [Controller template](https://github.com/milo-os/controller-template): CRD, reconciliation, webhook, deployment, and UI conventions.
-- [Organization API](https://github.com/milo-os/milo/blob/main/pkg/apis/resourcemanager/v1alpha1/organization_types.go) and [onboarding controller](https://github.com/milo-os/milo/blob/main/internal/controllers/resourcemanager/organization_onboarding.go): currently require contact details, a billing account, and a ready payment method. Add arrangement-aware billing readiness consumption.
-- [Organization bootstrap](https://github.com/milo-os/milo/blob/main/internal/controllers/resourcemanager/organization_bootstrap.go) and [membership API](https://github.com/milo-os/milo/blob/main/pkg/apis/resourcemanager/v1alpha1/organizationmembership_types.go): reuse membership and role reconciliation, with an explicit trusted path assigning the recipient rather than the resource creator. Exact owner/admin role mapping must be verified.
-- [BillingAccount API](https://github.com/milo-os/billing/blob/main/api/v1alpha1/billingaccount_types.go): already includes contact details, payment terms, payment-method references, and invoice-health conditions. Add payment arrangement, restricted invoice authorization, and aggregate readiness.
-- [Email API](https://github.com/milo-os/milo/blob/main/pkg/apis/notification/v1alpha1/email_types.go): supports literal email recipients and template-based delivery. Create stable Email resources for invitation and completion deliveries.
-- [UserInvitation](https://github.com/milo-os/milo/blob/main/pkg/apis/iam/v1alpha1/userinvitation_types.go) targets existing-organization membership; [PlatformInvitation](https://github.com/milo-os/milo/blob/main/pkg/apis/iam/v1alpha1/platforminvitation_types.go) handles platform access. Reuse relevant mechanisms without assuming either already implements this onboarding journey or its revocation semantics.
+Proposed CRM integration: after verified redemption, ensure a new or Pending user's PlatformAccess is Approved through a narrowly authorized operation backed by the staff invitation. Preserve existing Approved access. Do not overwrite Rejected or Suspended access; surface the existing account restriction instead. Coordinate this transition with the platform's current access-policy writer so reconciliation cannot fight over the state. This uses the staff authorization already given, not a new manual review. Canceling CRM onboarding revokes its scoped access, not unrelated platform or organization access.
 
-## Implementation sequence and verification
+Reuse OrganizationMembership and its role reconciliation for the completing user. Milo's configured default owner role is `resourcemanager.miloapis.com-organizationowner`; confirm the deployed role and permissions and use the configured owner role for the first administrator rather than inventing a CRM role.
 
-1. Define CRM schemas, administrative scoping, validation, and staff permission mappings.
-2. Add Billing arrangement authorization and readiness; update Resource Manager's onboarding check with backward-compatible card behavior.
-3. Implement invitation operations, recipient projection, authentication, revocation, and notification delivery.
-4. Reconcile organization/billing setup and final administrator membership, then connect staff and customer interfaces.
+Organization admission currently bootstraps creator ownership, with an exception for `system:masters`. CRM should not receive that broad privilege or impersonate the customer just to create an organization. The remaining platform integration is a narrowly permissioned service-creation path that skips creator membership and creator annotation, allowing CRM to grant the final recipient membership explicitly on completion. Apply it consistently to named and generated-name creation paths. Before implementation, verify whether the target deployment already offers such a path; otherwise this is a small Resource Manager change, not a replacement membership system.
 
-Verify card and invoice happy paths, denied customer attempts to select Invoice, invoice setup without a payment method, default terms, and existing card-account behavior. Cover replacement after saved progress and redemption, old-session revocation, expiration, duplicate requests, concurrent replace/submit, controller restarts, email failures, partial provisioning, administrator-role readiness, and tenancy isolation.
+## Existing capabilities and source baseline
 
-Before implementation, settle the action API mechanism, exact namespace/discovery routing, scoped recipient access during billing setup, platform invitation integration, required billing fields, invitation lifetime, and abandoned-resource retention. These are engineering contract decisions; they do not reopen the agreed product behavior.
+The capability audit compared local checkouts with GitHub main. The local billing and onboarding code was behind. Verified source revisions:
+
+- Milo: `303297eca044e0deb080a6482662c7cef1601f18`.
+- Billing: `433849909b4dc7dbf17163232415c59a2f1fe602`.
+- Zitadel provider: `177761243a6ab1fa96cbdbfaaaa5c6c429c101cd`.
+
+This establishes source capabilities, not deployed versions or enabled feature gates.
+
+| Existing capability | Reuse in CRM | Remaining integration |
+| --- | --- | --- |
+| [BillingArrangement](https://github.com/milo-os/billing/blob/433849909b4dc7dbf17163232415c59a2f1fe602/api/v1alpha1/billingarrangement_types.go) | Staff-granted invoice terms, sales-led grants without applications | Authorized creation, required reason and configured credit limit, stable resource identity |
+| [BillingAccount](https://github.com/milo-os/billing/blob/433849909b4dc7dbf17163232415c59a2f1fe602/api/v1alpha1/billingaccount_types.go) | Contact details, standard terms, published arrangement, PaymentReady | Use the existing contract and check the journey's account |
+| [Organization onboarding](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/internal/controllers/resourcemanager/organization_onboarding.go) | PaymentReady consumption and older-controller fallback | Observe existing readiness; no new billing condition |
+| [Organization admission](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/internal/webhooks/resourcemanager/v1alpha1/organization_webhook.go) | Namespace setup and organization lifecycle | Narrow service-created organization path without granting the creator ownership |
+| [OrganizationMembership](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/pkg/apis/resourcemanager/v1alpha1/organizationmembership_types.go) | Membership and role reconciliation | Assign completing recipient and wait for effective permissions |
+| [PlatformAccess](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/pkg/apis/iam/v1alpha1/platformaccess_types.go) | Existing account eligibility states | Staff-backed approval of eligible new/Pending users; preserve restrictions |
+| [PlatformInvitation controller](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/internal/controllers/iam/platforminvitation_controller.go) | Existing platform invitation delivery pattern | Do not mistake delivery for approval or send a redundant platform email |
+| [UserInvitation controller](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/internal/controllers/iam/userinvitation_controller.go) | Recipient matching, expiration, email and membership patterns | CRM still owns saved progress and replacement; accepted user invitations are deleted |
+| [Email API](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/pkg/apis/notification/v1alpha1/email_types.go) | Template delivery to literal email addresses | Stable invitation/completion delivery resources and retries |
+| [Email verification feature gate](https://github.com/milo-os/milo/blob/303297eca044e0deb080a6482662c7cef1601f18/pkg/features/features.go) | Existing verification machinery | Require verified email at redemption independently of global enforcement |
+
+Use the [controller template](https://github.com/milo-os/controller-template) for service conventions. No new authentication provider, payment-arrangement model, billing-readiness condition, notification transport, or membership engine is in scope.
+
+## Remaining implementation work
+
+1. Define the five CRM resources, administrative scoping, reference validation, and staff permission mappings.
+2. Implement the action API, saved drafts, recipient projection, current-invitation checks, replacement, revocation, and resumable progress.
+3. Integrate verified authentication and PlatformAccess; establish the narrow organization-creation path and configured first-owner role.
+4. Reconcile existing Organization, BillingAccount, BillingArrangement, OrganizationMembership, and Email resources with stable identities and retry-safe transitions.
+5. Build the staff and customer interfaces, completion visibility, and Opportunity-owner notification without changing Opportunity stage.
+
+Validate card and invoice journeys against the existing platform APIs: invoice onboarding without a payment method or application, denied customer arrangement changes, active versus scheduled arrangements, standard terms and required credit-limit configuration, and missing readiness. Cover new/Pending/Approved/restricted users, verified-email enforcement when the global gate is off, replacement after redemption, old-session revocation, expiration, duplicate requests, concurrent replace/submit, controller restarts, email failures, partial provisioning, first-owner permissions, and tenancy isolation.
+
+Before implementation, settle the action API mechanism, exact namespace/discovery routing, scoped recipient access during billing setup, coordinated PlatformAccess approval, narrowly authorized organization creation, finance-approved credit-limit defaults, invitation lifetime, and abandoned-resource retention. Verify deployed versions and provider behavior. These are integration and engineering decisions; the product journey remains unchanged.
