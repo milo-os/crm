@@ -1,6 +1,6 @@
 # Native Milo API and onboarding system design
 
-Status: Proposed. This document describes the implementation direction, not functionality already available in CRM. CRM API examples are proposals. Existing Milo and Billing APIs are identified separately below.
+Status: V1 implementation defaults agreed; three external dependencies remain open below. This document describes intended functionality, not an implemented CRM service. CRM API examples illustrate the agreed direction; exact schemas remain implementation work. Existing Milo and Billing APIs are identified separately below.
 
 Product scope: [From sales opportunity to organization onboarding](../enhancements/opportunity-led-onboarding.md). Delivery: [issue #2](https://github.com/milo-os/crm/issues/2).
 
@@ -39,7 +39,7 @@ A Company normally has one organization but can reference multiple. Multiple Opp
 
 An onboarding record and an invitation have different lifetimes. Resends and replacements continue the same onboarding. Only a deliberate new onboarding creates another organization. A Person is not a User; linking a contact to an authenticated account requires verified identity, not a staff-entered user identifier.
 
-Place CRM records in the selling organization's administrative context. They must not depend on the prospective customer's organization existing. Final namespace, discovery, and cross-context routing configuration must be checked against Milo tenancy conventions before implementation. References must stay within the authorized selling context, except for explicitly controlled links to resulting customer resources.
+Place CRM records in the selling organization's administrative context. V1 supports one selling organization, with references scoped to it. Records must not depend on the prospective customer's organization existing. Implement namespace, discovery, and cross-context routing using Milo tenancy conventions. References stay within the authorized selling context, except for explicitly controlled links to resulting customer resources.
 
 ## API shape
 
@@ -87,12 +87,12 @@ spec:
 
 An invitation captures the recipient email at issuance; changing a Person does not redirect an existing invitation. The service records the authenticated inviter and invoice authorization evidence, rather than trusting caller-supplied attribution.
 
-Define explicit operations for send, resend, replace, cancel, redeem, save details, and submit. These are behavioral contracts, not a claim that CRDs automatically provide custom action endpoints. Choose request resources or a Milo-compatible API extension for these operations before implementation. Authentication and token exchange need a server-side handler even when durable state is stored in CRDs.
+Use a thin Milo-authenticated server-side action API for send, resend, replace, cancel, redeem, save details, and submit. Keep durable state in the five CRDs; do not add a request resource for each action. CRDs do not automatically provide custom action endpoints, so implement handlers with Milo authentication and authorization. Recipients use these handlers rather than accessing CRM resources directly.
 
 | Operation | Required behavior |
 | --- | --- |
 | Send | Validate references and permission, freeze staff-prepared details and billing arrangement, activate the invitation, enqueue email |
-| Resend | Send another delivery for the same onboarding and intended recipient; do not create an organization; renew expired credentials explicitly |
+| Resend | Issue a fresh seven-day link for the same onboarding and recipient, invalidate the previous link, and send a new delivery; do not create an organization |
 | Replace | Invalidate prior invitation and recipient access, preserve organization draft details, issue to the replacement recipient |
 | Cancel invitation | Revoke access while retaining saved onboarding for a later replacement |
 | Redeem | Require a valid invitation and authenticated, verified matching email; establish access to this onboarding only |
@@ -115,17 +115,17 @@ stateDiagram-v2
     InProgress --> Cancelled: Cancel onboarding
 ```
 
-Invitation delivery, expiration, and revocation have their own conditions. An expired invitation does not erase onboarding progress. Replacing a recipient preserves the draft but clears recipient-specific identity and agreement acceptance. The new recipient must review the details and accept agreements personally.
+Invitation links expire seven days after issuance. Resends and replacements issue fresh seven-day links and invalidate previous credentials. Invitation delivery, expiration, and revocation have their own conditions. Expiration and cancellation revoke scoped onboarding access, including existing sessions; enforce validity on every recipient request. An expired invitation does not erase onboarding progress. Replacing a recipient preserves the draft but clears recipient-specific identity and agreement acceptance. The new recipient must review the details and accept agreements personally.
 
 Keep one authoritative current-invitation reference or generation on the onboarding. Check it on redemption and every recipient request, including requests from existing sessions. Replacement and submission compete through a resource-version-checked transition on the same record: only one wins. Do not replace or cancel while completion is committing; retries resume completion. After completion, administrator changes use the existing membership workflow.
 
-Create the underlying Organization and BillingAccount when required during authenticated onboarding, particularly for payment collection. Resource creation does not mean onboarding is complete. Prior to completion, expose only the access needed for onboarding, not general organization administration.
+Create the underlying Organization and BillingAccount after the recipient signs in and redeems the invitation, when billing setup requires them. Resource creation does not mean onboarding is complete. Prior to completion, expose only the access needed for onboarding, not general organization administration.
 
 Use stable identities derived from the onboarding UID for provisioned resources and verify their provenance before reuse. Reconciliation must recover after a restart between organization creation, billing setup, membership creation, and status updates. Show actionable pending/failure conditions without requiring manual approval or creating a second organization.
 
-Completion requires validated organization details, required agreements for the current recipient, billing readiness, organization readiness, and effective first-administrator access. Create the administrator membership for the verified completing User, not the salesperson or CRM service account. Mark Complete only after the permission bindings are usable. Preserve completion as a historical event; later billing suspension belongs to ongoing account lifecycle management.
+Completion requires validated organization details, required agreements for the current recipient, billing readiness, organization readiness, and effective first-administrator access. Create the administrator membership for the verified completing User, not the salesperson or CRM service account. Show “Finishing setup” while controllers reconcile and mark Complete only after the organization, billing requirements, and administrator permission bindings are ready. Controller delays do not introduce manual review. Preserve completion as a historical event; later billing suspension belongs to ongoing account lifecycle management.
 
-Notify the Opportunity owner once completion occurs, link the resulting organization to the Company and Opportunity, and leave the Opportunity stage unchanged. Email delivery failure must be retryable without reversing a completed onboarding. Cancellation of abandoned onboarding needs an explicit retention/cleanup policy for partially created resources; do not delete financial resources by cascading CRM ownership.
+Notify the Opportunity owner once completion occurs, link the resulting organization to the Company and Opportunity, and leave the Opportunity stage unchanged. Email delivery failure must be retryable without reversing a completed onboarding. For v1, retain saved progress and partially created organizations and financial records when onboarding is abandoned or canceled. Do not implement automatic deletion or cascade financial-resource deletion from CRM ownership. Expiration and cancellation revoke onboarding access. Automated retention and cleanup policy is deferred beyond v1.
 
 ## Invoice and card billing
 
@@ -146,7 +146,7 @@ Milo's current organization onboarding controller already checks `PaymentReady`,
 
 `PaymentReady` means the account has a way to pay; it is not an aggregate of every account, contact, suspension, or invoice-health requirement. Keep validation of required details and account/access eligibility explicit. `InvoicingReady` continues to describe invoice payment health, and `DefaultPaymentMethodReady` can remain false for invoice customers. A scheduled or pending arrangement alone does not qualify; wait for an active arrangement. For the Invoice choice, verify that the expected arrangement is active rather than treating an unrelated card as proof it was granted.
 
-BillingAccount standard terms are net 30, monthly, on the first; use Billing's published effective terms in the UI. The existing BillingArrangement also requires an internal reason and an invoice credit limit. Proposed v1 integration: use a centrally configured, finance-approved credit-limit default in the account currency, and generate the internal reason from the staff-authorized onboarding reference. Capture the authenticated staff actor in the audit trail. Finance must establish the default before invoice invitations are enabled; do not invent an amount or use zero as an unlimited sentinel. Editing custom terms or credit limits remains outside CRM v1.
+BillingAccount standard terms are net 30, monthly, on the first; use Billing's published effective terms in the UI. The existing BillingArrangement also requires an internal reason and an invoice credit limit. Use a centrally configured, finance-approved credit-limit default for each supported account currency, and generate the internal reason from the staff-authorized onboarding reference. Capture the authenticated staff actor in the audit trail. Finance must establish the default before invoice invitations are enabled; do not invent an amount or use zero as an unlimited sentinel. Editing custom terms or credit limits remains outside CRM v1.
 
 Verify the deployed Billing and Milo versions provide these existing contracts. The source describes the compatibility fallback as removable once environments use Billing v0.3.10 or later; deployment state and provider invoice collection behavior still need integration verification. Keep missing or unknown required readiness pending. Staff authorization occurs before invitation, with no customer application or manual review added to onboarding.
 
@@ -162,7 +162,7 @@ Use expiring, revocable invitation credentials; store only a verifier in restric
 
 Use the existing `PlatformAccess` resource as the authority for platform eligibility. It has Pending, Approved, Rejected, and Suspended states; the User controller derives access from it. The PlatformInvitation controller handles invitation email delivery and is not proof of approval. Do not build new work on the legacy PlatformAccessApproval resources.
 
-Proposed CRM integration: after verified redemption, ensure a new or Pending user's PlatformAccess is Approved through a narrowly authorized operation backed by the staff invitation. Preserve existing Approved access. Do not overwrite Rejected or Suspended access; surface the existing account restriction instead. Coordinate this transition with the platform's current access-policy writer so reconciliation cannot fight over the state. This uses the staff authorization already given, not a new manual review. Canceling CRM onboarding revokes its scoped access, not unrelated platform or organization access.
+The agreed integration behavior is: after verified redemption, ensure a new or Pending user's PlatformAccess is Approved through a narrowly authorized operation backed by the staff invitation. Preserve existing Approved access. Do not overwrite Rejected or Suspended access; surface the existing account restriction instead. Platform-access coordination remains an open dependency: establish the authorized transition and writer coordination with the platform's current access-policy controller so reconciliation cannot fight over the state. This uses the staff authorization already given, not a new manual review. Canceling CRM onboarding revokes its scoped access, not unrelated platform or organization access.
 
 Reuse OrganizationMembership and its role reconciliation for the completing user. Milo's configured default owner role is `resourcemanager.miloapis.com-organizationowner`; confirm the deployed role and permissions and use the configured owner role for the first administrator rather than inventing a CRM role.
 
@@ -203,4 +203,18 @@ Use the [controller template](https://github.com/milo-os/controller-template) fo
 
 Validate card and invoice journeys against the existing platform APIs: invoice onboarding without a payment method or application, denied customer arrangement changes, active versus scheduled arrangements, standard terms and required credit-limit configuration, and missing readiness. Cover new/Pending/Approved/restricted users, verified-email enforcement when the global gate is off, replacement after redemption, old-session revocation, expiration, duplicate requests, concurrent replace/submit, controller restarts, email failures, partial provisioning, first-owner permissions, and tenancy isolation.
 
-Before implementation, settle the action API mechanism, exact namespace/discovery routing, scoped recipient access during billing setup, coordinated PlatformAccess approval, narrowly authorized organization creation, finance-approved credit-limit defaults, invitation lifetime, and abandoned-resource retention. Verify deployed versions and provider behavior. These are integration and engineering decisions; the product journey remains unchanged.
+## Open dependencies
+
+The v1 defaults above are settled. Three dependencies remain open; their resolution must preserve the agreed customer journey without adding another manual approval.
+
+| Dependency | Agreed direction | Resolution needed | Blocks |
+| --- | --- | --- | --- |
+| Finance-approved credit limit | Configure a default per supported currency outside the customer form; no custom-limit editing in CRM v1 | Finance supplies the approved values and configuration ownership | Enabling invoice invitations for a currency without an approved default |
+| Organization-creation permission path | Use a narrow service permission that skips creator ownership; never grant CRM system:masters | Confirm an existing supported path or implement the Resource Manager permission check, including named and generated-name creation | Provisioning customer organizations through CRM |
+| Platform-access coordination | Staff authorization approves eligible new/Pending users; preserve Approved, Rejected, and Suspended states as described above | Agree the authorized transition and state-writer coordination with the platform access-policy controller | Automatic platform approval for eligible invited users |
+
+CRM schemas, ordinary record management, basic screens, and invitation state handling can begin while these dependencies are resolved. Integration code must not substitute permissive fallbacks for unresolved dependencies.
+
+## Deployment verification
+
+Before enabling the end-to-end flow, verify the target environment's BillingArrangement, PaymentReady, and organization-readiness support; the configured organization-owner role and its effective permissions; and the deployed provider's invoice collection behavior. Exercise card and invoice onboarding against that environment. These are release checks, not additional open product or architecture choices.
