@@ -1,0 +1,58 @@
+# crm
+
+Native Milo service for the CRM: Companies, People, Opportunities, and opportunity-led organization onboarding. Built from [controller-template](https://github.com/milo-os/controller-template), modeled after the `billing` service conventions.
+
+- Product scope: `docs/enhancements/opportunity-led-onboarding.md`
+- Technical design: `docs/design/opportunity-led-onboarding.md`
+- Delivery tracking: milo-os/crm#2 and its sub-issues
+
+## Architecture
+
+- **CRD-based**: kubebuilder v4 CRDs under `crm.miloapis.com/v1alpha1`, served by Milo's API server.
+- **One controller manager**: `cmd/crm` runs the `operator` subcommand (controller-runtime). Reconcilers and admission webhooks are registered in `cmd/crm/cmd/operator.go`.
+- **Milo control plane aware**: the `kubeconfigPath` operator config field points the manager at Milo's API server; empty means in-cluster config.
+- **Scoping**: every CRM resource is namespaced and lives in the selling organization's namespace (`organization-<name>`). Never add a cluster-scoped CRM resource.
+
+## Repo layout
+
+```
+cmd/crm/                # binary entrypoint and cobra commands
+api/crm/v1alpha1/       # CRM CRD type definitions
+api/example/v1alpha1/   # template example resource (reference only)
+internal/config/        # operator configuration (CRMOperator)
+config/base/            # CRDs and manager
+config/components/      # namespace, RBAC, leader election
+config/overlays/dev/    # kind development overlay
+hack/                   # boilerplate and generation helpers
+docs/                   # enhancement and design
+```
+
+## Adding a resource
+
+1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Namespaced`, and an `init()` that registers both through `SchemeBuilder.Register`.
+2. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
+
+## Example resource
+
+The template's example `Resource` kind is kept as a working reference: in its own `example.miloapis.com` API group: `api/example/v1alpha1/resource_types.go`, its reconciler in `internal/controller/example/`, its defaulting and validating webhooks in `internal/webhook/example/v1alpha1/`, and a sample in `config/samples/`. Follow it when adding CRM resources, controllers, and webhooks. It is not part of the CRM product.
+
+## Reconcile errors
+
+Return an error from `Reconcile` only when a retry can fix it.
+
+- **A failure no retry can fix**: set a condition naming the case and return `reconcile.TerminalError(err)`.
+- **A wait for something else**: set a condition, watch what you wait for, and return no error; if you cannot watch it, return `ctrl.Result{RequeueAfter: <interval>}`. Do not use `Result.Requeue`.
+- **Anything else** (timeouts, conflicts, server errors): return the error.
+
+## Verification
+
+```bash
+export TASK_X_REMOTE_TASKFILES=1
+task generate && task manifests
+task build && task test && task lint
+kustomize build config/overlays/dev
+```
+
+## Metrics and logs
+
+Create every metric and logger through `go.miloapis.com/instrumentation`, naming labels with its labels constants. The instrumentation adoption test enforces this; see https://github.com/milo-os/instrumentation/blob/main/ADOPTING.md.

@@ -41,6 +41,10 @@ An onboarding record and an invitation have different lifetimes. Resends and rep
 
 Place CRM records in the selling organization's administrative context. V1 supports one selling organization, with references scoped to it. Records must not depend on the prospective customer's organization existing. Implement namespace, discovery, and cross-context routing using Milo tenancy conventions. References stay within the authorized selling context, except for explicitly controlled links to resulting customer resources.
 
+### Resource scoping
+
+Every CRM resource is namespaced and lives in the selling organization's namespace, `organization-<name>`, following the convention Milo services such as Billing use for organization-owned resources. No CRM resource is cluster-scoped. References between CRM resources are local names within that namespace, so a record can never point into another selling organization. The only cross-namespace references are the explicitly controlled links to resulting customer resources, such as the customer's Organization and BillingAccount. Staff access is granted per selling organization through Milo IAM on that namespace.
+
 ## API shape
 
 Expose standard create, get, list, watch, and update operations for CRM resources through Milo. Use `spec` for desired input, `status` for controller-observed results, standard conditions and `observedGeneration`, and resource versions for concurrent updates. Clients cannot write completion state or trusted authorization evidence.

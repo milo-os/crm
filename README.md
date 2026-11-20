@@ -9,3 +9,34 @@ Manage customer relationships and help customers get started with Milo.
 ## Technical design
 
 - [Native Milo API and onboarding system design](docs/design/opportunity-led-onboarding.md)
+
+## Development
+
+CRM is a native Milo service built from [controller-template](https://github.com/milo-os/controller-template). It serves the `crm.miloapis.com/v1alpha1` API group as CRDs, reconciled by a single controller manager.
+
+| Tool | Version |
+| --- | --- |
+| Go | 1.27+ |
+| [Task](https://taskfile.dev/installation) | v3+ |
+| Docker and kind | recent (only for `task dev:*`) |
+
+The Taskfile includes a remote Taskfile from `datum-cloud/test-infra`, so set `TASK_X_REMOTE_TASKFILES=1`.
+
+```bash
+task generate    # deepcopy and defaults code generation
+task manifests   # CRDs, RBAC, and the CRD kustomization
+task build       # build bin/crm
+task test        # run Go tests
+task lint        # run golangci-lint
+task dev:setup   # kind cluster plus a dev deployment
+```
+
+### Adding a resource
+
+1. Add `api/crm/v1alpha1/<kind>_types.go` with the type, its list type, kubebuilder markers, and an `init()` that registers both with `SchemeBuilder`.
+2. Mark it `+kubebuilder:resource:scope=Namespaced`; every CRM resource lives in the selling organization's namespace (see [Resource scoping](docs/design/opportunity-led-onboarding.md#resource-scoping)).
+3. Run `task generate && task manifests`.
+
+The CRD is written to `config/base/crd/bases`, listed in the CRD kustomization, and registered with the manager's scheme automatically.
+
+The template's example `Resource` kind lives in its own `example.miloapis.com` group under `api/example/v1alpha1`, with its controller, webhooks, and sample. It is kept as a reference for new resources. It is not part of the CRM product.
