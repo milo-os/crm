@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Event
+metadata:
+  annotations:
+    event.example.miloapis.com/description: No description provided.
+type: Normal
+reason: ResourceReady
+source:
+  component: crm-controller
+involvedObject:
+  apiVersion: example.miloapis.com/v1alpha1
+  kind: Resource
+  name: defaulted-resource

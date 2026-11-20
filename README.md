@@ -46,6 +46,16 @@ task test-infra:cluster-down            # delete the cluster
 
 The E2E workflow runs the same steps in CI and can be started manually with a chosen suite.
 
+### Activity policies
+
+`ActivityPolicy` resources live in `config/components/activity-policies` and are applied to the Milo control plane on the deploy side. Their unit tests live in `test/activity-policies` and run offline in the activitytool image (Docker required):
+
+```bash
+task test:activity-policies
+```
+
+The Activity Policy Tests workflow runs the same check when policies or tests change.
+
 ### Adding a resource
 
 1. Add `api/crm/v1alpha1/<kind>_types.go` with the type, its list type, kubebuilder markers, and an `init()` that registers both with `SchemeBuilder`.

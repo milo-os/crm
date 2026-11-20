@@ -39,6 +39,10 @@ docs/                   # enhancement and design
 
 Follow the service-catalog layout. Webhooks live in `internal/webhook/<group>/v1alpha1` (package `v1alpha1`), expose `Setup<Kind>WebhookWithManager`, handle defaulting and logging, and delegate every rule to `internal/validation/<group>`. Validation functions are named `Validate<Kind>Create/Update/Delete`, return a `field.ErrorList`, and are covered by table-driven unit tests; the webhook turns the list into `apierrors.NewInvalid`. Every `+kubebuilder:webhook` marker must set `serviceName=crm-webhook`, the manager's webhook Service; controller-gen otherwise writes `webhook-service`, which does not exist.
 
+## Activity policies
+
+Each user-facing resource gets an `ActivityPolicy` in `config/components/activity-policies/<kind>-policy.yaml` (listed in that component's kustomization) and a `test/activity-policies/<kind>.test.yaml`. Follow the `test-policy` skill: test every rule, assert exact summaries and links, and cover no-match cases (system actors, reads, status, failed and dry-run requests). Never copy actual output into an expectation. `task test:activity-policies` runs with `--fail-on-untested --fail-on-untested-rules`. Keep `ACTIVITYTOOL_VERSION` in the Taskfile and `activitytool-version` in `.github/workflows/activity-policies.yaml` in sync.
+
 ## Example resource
 
 The template's example `Resource` kind is kept as a working reference: in its own `example.miloapis.com` API group: `api/example/v1alpha1/resource_types.go`, its reconciler in `internal/controller/example/`, its defaulting and validating webhooks in `internal/webhook/example/v1alpha1/` with their rules in `internal/validation/example/`, and a sample in `config/samples/`. Follow it when adding CRM resources, controllers, and webhooks. It is not part of the CRM product.

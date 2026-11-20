@@ -8,18 +8,21 @@ spec:
     Tests the example Resource controller and admission webhooks:
     - The defaulting webhook sets a description when none is given.
     - The controller adds its finalizer and reports the resource Ready.
+    - The controller records a ResourceReady event for the activity timeline.
     - The validating webhook rejects a blank description on create and update.
     - The validating webhook blocks deletion while deletion protection is on.
     - The controller removes its finalizer so deletion completes.
 
   steps:
     - name: create-and-reconcile
-      description: A resource without a description is defaulted, finalized, and becomes Ready.
+      description: A resource without a description is defaulted, finalized, becomes Ready, and records a ResourceReady event.
       try:
         - create:
             file: resources/resource-without-description.yaml
         - assert:
             file: assertions/resource-ready.yaml
+        - assert:
+            file: assertions/resource-ready-event.yaml
 
     - name: reject-blank-description-on-create
       description: Creating a resource with a blank description is rejected.

@@ -1,0 +1,319 @@
+# Example Resource (example.miloapis.com): creates, deletion protection being
+# turned on and off, updates, deletes, the Resource becoming Ready, and the
+# requests and events that must not produce activity.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  example.miloapis.com:
+    resources: Resource
+
+tests:
+  - name: create links the new resource
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+      requestURI: /apis/example.miloapis.com/v1alpha1/namespaces/organization-acme/resources
+      responseStatus:
+        code: 201
+      requestObject:
+        spec: {}
+      responseObject:
+        metadata:
+          name: demo
+          namespace: organization-acme
+        spec:
+          description: No description provided.
+    exp_policy: example.miloapis.com-resource
+    exp_rule: create
+    exp_summary: alice@example.com created example resource demo
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: demo
+        apiGroup: example.miloapis.com
+        kind: Resource
+        namespace: organization-acme
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com created an example resource
+
+  - name: patch turning deletion protection on
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+      requestObject:
+        metadata:
+          annotations:
+            example.miloapis.com/deletion-protection: "true"
+    exp_rule: deletion-protection
+    exp_summary: alice@example.com turned on deletion protection for example resource demo
+    exp_links:
+      - marker: demo
+        apiGroup: example.miloapis.com
+        kind: Resource
+        namespace: organization-acme
+        name: demo
+
+  - name: patch turning deletion protection off
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+      requestObject:
+        metadata:
+          annotations:
+            example.miloapis.com/deletion-protection: "false"
+    exp_rule: deletion-protection
+    exp_summary: alice@example.com turned off deletion protection for example resource demo
+
+  - name: patch of the description is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          description: Updated description.
+    exp_rule: update
+    exp_summary: alice@example.com updated example resource demo
+    exp_links:
+      - marker: demo
+        apiGroup: example.miloapis.com
+        kind: Resource
+        namespace: organization-acme
+        name: demo
+
+  - name: full update carrying the protection annotation is an update, not a protection change
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+      requestObject:
+        metadata:
+          name: demo
+          annotations:
+            example.miloapis.com/deletion-protection: "true"
+        spec:
+          description: Updated description.
+    exp_rule: update
+    exp_summary: alice@example.com updated example resource demo
+
+  - name: delete names the removed resource
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted example resource demo
+
+  - name: delete blocked by deletion protection produces no activity
+    policy: example.miloapis.com-resource
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: controller adding its finalizer produces no activity
+    policy: example.miloapis.com-resource
+    audit:
+      verb: update
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: example.miloapis.com-resource
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: example.miloapis.com-resource
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+      requestURI: /apis/example.miloapis.com/v1alpha1/namespaces/organization-acme/resources?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: example.miloapis.com-resource
+    audit:
+      verb: get
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: example.miloapis.com
+        apiVersion: v1alpha1
+        resource: resources
+        namespace: organization-acme
+        name: demo
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: controller reports the resource ready with its description
+    event:
+      metadata:
+        name: demo.18a1
+        namespace: organization-acme
+        annotations:
+          platform.miloapis.com/scope.type: Organization
+          platform.miloapis.com/scope.name: acme
+          event.example.miloapis.com/description: Demo resource.
+      reason: ResourceReady
+      type: Normal
+      note: Resource is ready.
+      reportingController: crm-controller
+      regarding:
+        apiVersion: example.miloapis.com/v1alpha1
+        kind: Resource
+        name: demo
+        namespace: organization-acme
+    exp_policy: example.miloapis.com-resource
+    exp_rule: ready
+    exp_summary: "Example resource demo is ready: Demo resource."
+    exp_change_source: system
+    exp_links:
+      - marker: demo
+        apiGroup: example.miloapis.com
+        kind: Resource
+        namespace: organization-acme
+        name: demo
+
+  - name: ready without a description falls back to a short summary
+    event:
+      metadata:
+        name: demo.18a2
+        namespace: organization-acme
+      reason: ResourceReady
+      type: Normal
+      reportingController: crm-controller
+      regarding:
+        apiVersion: example.miloapis.com/v1alpha1
+        kind: Resource
+        name: demo
+        namespace: organization-acme
+    exp_rule: ready-fallback
+    exp_summary: Example resource demo is ready
+    exp_change_source: system
+    exp_links:
+      - marker: demo
+        apiGroup: example.miloapis.com
+        kind: Resource
+        namespace: organization-acme
+        name: demo
+
+  - name: other events produce no activity
+    policy: example.miloapis.com-resource
+    event:
+      metadata:
+        name: demo.18a3
+        namespace: organization-acme
+      reason: SomethingElse
+      type: Normal
+      reportingController: crm-controller
+      regarding:
+        apiVersion: example.miloapis.com/v1alpha1
+        kind: Resource
+        name: demo
+        namespace: organization-acme
+    exp_no_match: true

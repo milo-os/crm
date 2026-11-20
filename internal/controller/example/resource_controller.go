@@ -10,6 +10,7 @@ import (
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,7 +26,8 @@ const (
 
 // ResourceReconciler reconciles a Resource object.
 type ResourceReconciler struct {
-	client client.Client
+	client   client.Client
+	recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=example.miloapis.com,resources=resources,verbs=get;list;watch;create;update;patch;delete
@@ -60,6 +62,7 @@ func (r *ResourceReconciler) Reconcile(ctx context.Context, req reconcile.Reques
 	}
 
 	// Reconcile desired state
+	readyBefore := readyCondition(&resource)
 	resource.Status.Phase = examplev1alpha1.ResourcePhaseReady
 	resource.Status.ObservedGeneration = resource.Generation
 
@@ -74,6 +77,8 @@ func (r *ResourceReconciler) Reconcile(ctx context.Context, req reconcile.Reques
 	if err := r.client.Status().Update(ctx, &resource); err != nil {
 		return ctrl.Result{}, fmt.Errorf("updating status: %w", err)
 	}
+
+	recordReadyTransition(r.recorder, &resource, readyBefore)
 
 	logger.Info("reconciled resource", "phase", resource.Status.Phase)
 	return ctrl.Result{}, nil
@@ -94,6 +99,7 @@ func (r *ResourceReconciler) reconcileDelete(ctx context.Context, resource *exam
 // SetupWithManager sets up the controller with the Manager.
 func (r *ResourceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
+	r.recorder = mgr.GetEventRecorderFor(eventRecorderName) //nolint:staticcheck // SA1019: the events/v1 recorder can't set annotations, which timeline events need.
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("resource").
