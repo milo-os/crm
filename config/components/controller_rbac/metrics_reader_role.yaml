@@ -1,0 +1,11 @@
+# Grants reading the metrics endpoint. A deployment binds it to the service
+# account its scraper runs as.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crm-metrics-reader
+rules:
+- nonResourceURLs:
+  - "/metrics"
+  verbs:
+  - get

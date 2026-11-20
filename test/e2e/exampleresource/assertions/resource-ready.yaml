@@ -1,0 +1,13 @@
+apiVersion: example.miloapis.com/v1alpha1
+kind: Resource
+metadata:
+  name: defaulted-resource
+  finalizers:
+    - example.miloapis.com/resource
+spec:
+  description: No description provided.
+status:
+  phase: Ready
+  (conditions[?type == 'Ready']):
+    - status: "True"
+      reason: ResourceReady

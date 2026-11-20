@@ -1,0 +1,10 @@
+apiVersion: apiserver.config.miloapis.com/v1alpha1
+kind: CRMOperator
+metricsServer:
+  bindAddress: "0"
+# Serves the admission webhooks with the cert-manager certificate mounted at
+# /tmp/k8s-webhook-server/serving-certs.
+webhookServer: {}
+# Uncomment and set kubeconfigPath to point at Milo's control plane API server
+# when running against a remote cluster.
+# kubeconfigPath: /etc/milo/kubeconfig

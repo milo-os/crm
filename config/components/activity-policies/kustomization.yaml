@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# ActivityPolicies for the resources this service owns. They are applied to the
+# Milo control plane on the deploy side, after activity-system is up, because
+# the activity.miloapis.com CRDs are served by the activity aggregated
+# apiserver. They are not part of the dev overlay: test-infra does not run
+# Activity. Test them offline with `task test:activity-policies`.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# The owner the activity processor reads to route a failing policy's alerts.
+labels:
+  - pairs:
+      meta.datumapis.com/service: crm
+      meta.datumapis.com/team: platform
+
+resources:
+  - resource-policy.yaml
