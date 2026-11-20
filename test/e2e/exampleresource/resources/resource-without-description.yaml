@@ -1,0 +1,5 @@
+apiVersion: example.miloapis.com/v1alpha1
+kind: Resource
+metadata:
+  name: defaulted-resource
+spec: {}

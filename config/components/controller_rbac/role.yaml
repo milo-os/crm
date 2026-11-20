@@ -5,6 +5,14 @@ metadata:
   name: crm-manager
 rules:
 - apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - get
+  - update
+- apiGroups:
   - example.miloapis.com
   resources:
   - resources

@@ -27,3 +27,6 @@ cover.out
 
 # Claude AI
 .claude/.initialized
+
+# Chainsaw
+chainsaw-report.xml

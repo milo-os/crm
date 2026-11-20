@@ -7,6 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ResourceDeletionProtectionAnnotation blocks deletion of a Resource while it
+// is set to "true".
+const ResourceDeletionProtectionAnnotation = "example.miloapis.com/deletion-protection"
+
 // ResourcePhase represents the lifecycle state of a Resource.
 // +kubebuilder:validation:Enum=Provisioning;Ready;Failed
 type ResourcePhase string

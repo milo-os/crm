@@ -5,7 +5,7 @@ vars:
   IMAGE_NAME: "ghcr.io/milo-os/crm"
   IMAGE_TAG: "dev"
   TEST_INFRA_CLUSTER_NAME: "test-infra"
-  TEST_INFRA_REPO_REF: 'v0.6.0'
+  TEST_INFRA_REPO_REF: 'v0.7.2'
   CONTROLLER_TOOLS_VERSION: "v0.17.3"
   DEFAULTER_GEN_VERSION: "v0.37.1"
   GOLANGCI_LINT_VERSION: "v2.15"
@@ -98,6 +98,31 @@ tasks:
     deps:
       - install-tools
     silent: false
+
+  test:e2e:
+    desc: >-
+      Run chainsaw e2e tests against the test-infra cluster (see dev:setup).
+      Pass folder names under test/e2e to run only those, e.g. `task test:e2e -- exampleresource`.
+    deps:
+      - install-tools
+    env:
+      KUBECONFIG:
+        sh: echo "${KUBECONFIG:-.test-infra/kubeconfig}"
+    cmds:
+      - |
+        set -e
+        dirs=""
+        for name in {{.CLI_ARGS}}; do
+          dir="test/e2e/${name#test/e2e/}"
+          dir="${dir%/}"
+          if [ ! -d "$dir" ]; then
+            echo "No e2e tests found in $dir" >&2
+            exit 1
+          fi
+          dirs="$dirs $dir"
+        done
+        {{.TOOL_DIR}}/chainsaw test --config .chainsaw.yaml ${dirs:-test/e2e}
+    silent: true
 
   # Tool installation
   install-tools:

@@ -31,6 +31,21 @@ task lint        # run golangci-lint
 task dev:setup   # kind cluster plus a dev deployment
 ```
 
+### End-to-end tests
+
+Chainsaw tests live in `test/e2e/<suite>/` and run against the test-infra kind cluster.
+
+```bash
+task dev:setup                          # create the cluster and deploy CRM (once)
+task dev:deploy                         # reapply manifests after config changes
+task dev:redeploy                       # rebuild and restart after code changes
+task test:e2e                           # run every suite
+task test:e2e -- exampleresource        # run only test/e2e/exampleresource
+task test-infra:cluster-down            # delete the cluster
+```
+
+The E2E workflow runs the same steps in CI and can be started manually with a chosen suite.
+
 ### Adding a resource
 
 1. Add `api/crm/v1alpha1/<kind>_types.go` with the type, its list type, kubebuilder markers, and an `init()` that registers both with `SchemeBuilder`.

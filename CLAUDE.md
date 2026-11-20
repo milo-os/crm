@@ -19,6 +19,9 @@ Native Milo service for the CRM: Companies, People, Opportunities, and opportuni
 cmd/crm/                # binary entrypoint and cobra commands
 api/crm/v1alpha1/       # CRM CRD type definitions
 api/example/v1alpha1/   # template example resource (reference only)
+internal/webhook/       # admission webhooks, per API group
+internal/validation/    # admission validation rules, per API group
+test/e2e/               # chainsaw e2e tests, one folder per suite
 internal/config/        # operator configuration (CRMOperator)
 config/base/            # CRDs and manager
 config/components/      # namespace, RBAC, leader election
@@ -32,9 +35,13 @@ docs/                   # enhancement and design
 1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Namespaced`, and an `init()` that registers both through `SchemeBuilder.Register`.
 2. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
 
+## Admission webhooks
+
+Follow the service-catalog layout. Webhooks live in `internal/webhook/<group>/v1alpha1` (package `v1alpha1`), expose `Setup<Kind>WebhookWithManager`, handle defaulting and logging, and delegate every rule to `internal/validation/<group>`. Validation functions are named `Validate<Kind>Create/Update/Delete`, return a `field.ErrorList`, and are covered by table-driven unit tests; the webhook turns the list into `apierrors.NewInvalid`. Every `+kubebuilder:webhook` marker must set `serviceName=crm-webhook`, the manager's webhook Service; controller-gen otherwise writes `webhook-service`, which does not exist.
+
 ## Example resource
 
-The template's example `Resource` kind is kept as a working reference: in its own `example.miloapis.com` API group: `api/example/v1alpha1/resource_types.go`, its reconciler in `internal/controller/example/`, its defaulting and validating webhooks in `internal/webhook/example/v1alpha1/`, and a sample in `config/samples/`. Follow it when adding CRM resources, controllers, and webhooks. It is not part of the CRM product.
+The template's example `Resource` kind is kept as a working reference: in its own `example.miloapis.com` API group: `api/example/v1alpha1/resource_types.go`, its reconciler in `internal/controller/example/`, its defaulting and validating webhooks in `internal/webhook/example/v1alpha1/` with their rules in `internal/validation/example/`, and a sample in `config/samples/`. Follow it when adding CRM resources, controllers, and webhooks. It is not part of the CRM product.
 
 ## Reconcile errors
 
@@ -51,7 +58,13 @@ export TASK_X_REMOTE_TASKFILES=1
 task generate && task manifests
 task build && task test && task lint
 kustomize build config/overlays/dev
+
+# End to end, against the test-infra kind cluster (the user creates it with task dev:setup)
+task dev:deploy
+task test:e2e -- <suite>    # a folder under test/e2e; omit to run all
 ```
+
+Add a chainsaw suite under `test/e2e/<suite>/` for each resource's controller and webhook behavior.
 
 ## Metrics and logs
 

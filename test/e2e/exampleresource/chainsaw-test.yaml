@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: exampleresource
+spec:
+  description: |
+    Tests the example Resource controller and admission webhooks:
+    - The defaulting webhook sets a description when none is given.
+    - The controller adds its finalizer and reports the resource Ready.
+    - The validating webhook rejects a blank description on create and update.
+    - The validating webhook blocks deletion while deletion protection is on.
+    - The controller removes its finalizer so deletion completes.
+
+  steps:
+    - name: create-and-reconcile
+      description: A resource without a description is defaulted, finalized, and becomes Ready.
+      try:
+        - create:
+            file: resources/resource-without-description.yaml
+        - assert:
+            file: assertions/resource-ready.yaml
+
+    - name: reject-blank-description-on-create
+      description: Creating a resource with a blank description is rejected.
+      try:
+        - create:
+            file: resources/resource-blank-description.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.description')): true
+                  (contains($error, 'must not be blank')): true
+
+    - name: reject-blank-description-on-update
+      description: Updating a resource to a blank description is rejected and leaves it unchanged.
+      try:
+        - patch:
+            file: resources/patch-blank-description.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'must not be blank')): true
+        - assert:
+            file: assertions/resource-ready.yaml
+
+    - name: block-protected-deletion
+      description: Deletion is denied while the deletion-protection annotation is set.
+      try:
+        - patch:
+            file: resources/patch-enable-deletion-protection.yaml
+        - delete:
+            ref:
+              apiVersion: example.miloapis.com/v1alpha1
+              kind: Resource
+              name: defaulted-resource
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'deletion protection is enabled')): true
+        - assert:
+            file: assertions/resource-ready.yaml
+
+    - name: delete-after-removing-protection
+      description: Once protection is removed, deletion succeeds and the finalizer is released.
+      try:
+        - patch:
+            file: resources/patch-disable-deletion-protection.yaml
+        - delete:
+            ref:
+              apiVersion: example.miloapis.com/v1alpha1
+              kind: Resource
+              name: defaulted-resource
+        - error:
+            file: assertions/resource-exists.yaml

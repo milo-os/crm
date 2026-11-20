@@ -43,6 +43,11 @@ func init() {
 	utilruntime.Must(examplev1alpha1.AddToScheme(scheme))
 }
 
+// Leader election takes a lease in the namespace set by --leader-elect-namespace
+// (kube-system, which exists on the Milo API server). This is a framework-level
+// requirement, not tied to any reconciler.
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=create;get;update
+
 func newOperatorCommand(info BuildInfo) *cobra.Command {
 	var (
 		enableLeaderElection    bool
@@ -124,7 +129,7 @@ func newOperatorCommand(info BuildInfo) *cobra.Command {
 				return fmt.Errorf("creating example Resource controller: %w", err)
 			}
 
-			if err = examplewebhookv1alpha1.SetupWebhookWithManager(mgr); err != nil {
+			if err = examplewebhookv1alpha1.SetupResourceWebhookWithManager(mgr); err != nil {
 				return fmt.Errorf("creating example Resource webhook: %w", err)
 			}
 

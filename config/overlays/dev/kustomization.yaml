@@ -25,14 +25,6 @@ configMapGenerator:
 patches:
   - path: dev_patch.yaml
   - target:
-      kind: Deployment
-      name: crm-manager
-    patch: |-
-      - op: remove
-        path: /spec/template/spec/containers/0/volumeMounts/1
-      - op: remove
-        path: /spec/template/spec/volumes/1
-  - target:
       kind: Certificate
       name: crm-serving-cert
     patch: |-

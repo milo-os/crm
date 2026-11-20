@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/configuration-chainsaw-v1alpha2.json
+apiVersion: chainsaw.kyverno.io/v1alpha2
+kind: Configuration
+metadata:
+  name: crm
+spec:
+  timeouts:
+    apply: 30s
+    assert: 60s
+    cleanup: 60s
+    delete: 30s
+    error: 60s
+  execution:
+    failFast: false
+  report:
+    format: JUNIT-TEST
+    name: chainsaw-report

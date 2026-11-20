@@ -1,0 +1,6 @@
+apiVersion: example.miloapis.com/v1alpha1
+kind: Resource
+metadata:
+  name: defaulted-resource
+  annotations:
+    example.miloapis.com/deletion-protection: "true"
