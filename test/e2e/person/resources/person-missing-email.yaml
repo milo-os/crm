@@ -5,4 +5,4 @@ metadata:
 spec:
   givenName: Ann
   companyRef:
-    name: acme
+    name: globex

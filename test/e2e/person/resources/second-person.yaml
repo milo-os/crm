@@ -6,4 +6,4 @@ spec:
   givenName: John
   email: john@acme.example
   companyRef:
-    name: acme
+    name: globex

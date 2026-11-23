@@ -2,9 +2,8 @@
 
 package v1alpha1
 
-// CompanyReference names a Company. The Company lives in the selling
-// organization's namespace, like every CRM resource, so the reference holds
-// only its name.
+// CompanyReference names a Company. CRM resources are cluster-scoped, so
+// the name alone identifies it.
 type CompanyReference struct {
 	// Name is the Company's name.
 	//

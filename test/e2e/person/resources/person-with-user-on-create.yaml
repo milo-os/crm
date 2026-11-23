@@ -6,7 +6,7 @@ spec:
   givenName: Ann
   email: ann@acme.example
   companyRef:
-    name: acme
+    name: globex
 status:
   userRef:
     name: "340583683847097153"

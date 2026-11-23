@@ -28,7 +28,7 @@ spec:
         - create:
             file: resources/second-person.yaml
         - script:
-            content: kubectl get people -n $NAMESPACE -o name
+            content: kubectl get people -o name
             check:
               ($error == null): true
               (contains($stdout, 'person.crm.miloapis.com/jane-smith')): true
@@ -110,14 +110,14 @@ spec:
             file: assertions/person-without-user.yaml
         - script:
             content: >-
-              kubectl patch person ann -n $NAMESPACE --subresource=status --type=merge
+              kubectl patch person ann --subresource=status --type=merge
               -p '{"status":{"userRef":{"name":"Not_A_User"}}}'
             check:
               ($error != null): true
               (contains($stderr, 'must be a valid User name')): true
         - script:
             content: >-
-              kubectl patch person ann -n $NAMESPACE --subresource=status --type=merge
+              kubectl patch person ann --subresource=status --type=merge
               -p '{"status":{"userRef":{"name":"340583683847097153"}}}'
             check:
               ($error == null): true

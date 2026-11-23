@@ -5,4 +5,4 @@ metadata:
 spec:
   email: a@acme.example
   companyRef:
-    name: acme
+    name: globex

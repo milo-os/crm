@@ -17,14 +17,12 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
-      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/people
+      requestURI: /apis/crm.miloapis.com/v1alpha1/people
       responseStatus:
         code: 201
       responseObject:
         metadata:
           name: jane-smith
-          namespace: organization-datum
         spec:
           givenName: Jane
           familyName: Smith
@@ -43,7 +41,6 @@ tests:
       - marker: Jane Smith
         apiGroup: crm.miloapis.com
         kind: Person
-        namespace: organization-datum
 
   - name: create without a family name uses the given name
     audit:
@@ -54,13 +51,11 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
       responseStatus:
         code: 201
       responseObject:
         metadata:
           name: jane
-          namespace: organization-datum
         spec:
           givenName: Jane
           email: jane@acme.example
@@ -78,7 +73,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
       responseStatus:
         code: 201
     exp_rule: create-fallback
@@ -93,7 +87,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
         name: jane-smith
       responseStatus:
         code: 200
@@ -106,7 +99,6 @@ tests:
       - marker: jane-smith
         apiGroup: crm.miloapis.com
         kind: Person
-        namespace: organization-datum
         name: jane-smith
 
   - name: full update is an update
@@ -118,7 +110,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
         name: jane-smith
       responseStatus:
         code: 200
@@ -134,7 +125,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
         name: jane-smith
       responseStatus:
         code: 200
@@ -151,7 +141,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
       responseStatus:
         code: 422
     exp_no_match: true
@@ -166,7 +155,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
         name: jane-smith
       responseStatus:
         code: 200
@@ -182,7 +170,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
         name: jane-smith
         subresource: status
       responseStatus:
@@ -199,8 +186,7 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
-      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/people?dryRun=All
+      requestURI: /apis/crm.miloapis.com/v1alpha1/people?dryRun=All
       responseStatus:
         code: 201
     exp_no_match: true
@@ -215,7 +201,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: people
-        namespace: organization-datum
       responseStatus:
         code: 200
     exp_no_match: true

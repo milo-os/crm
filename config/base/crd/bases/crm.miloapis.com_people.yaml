@@ -12,7 +12,7 @@ spec:
     listKind: PersonList
     plural: people
     singular: person
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.givenName
@@ -39,7 +39,7 @@ spec:
       openAPIV3Schema:
         description: |-
           Person is a sales contact at a Company, including people without a Milo
-          account. It lives in the selling organization's namespace.
+          account. It is cluster-scoped and managed only by Milo staff.
         properties:
           apiVersion:
             description: |-

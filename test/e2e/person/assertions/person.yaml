@@ -7,4 +7,4 @@ spec:
   familyName: Smith
   email: jane@acme.example
   companyRef:
-    name: acme
+    name: globex

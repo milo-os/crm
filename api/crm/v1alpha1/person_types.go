@@ -51,10 +51,10 @@ type PersonStatus struct {
 }
 
 // Person is a sales contact at a Company, including people without a Milo
-// account. It lives in the selling organization's namespace.
+// account. It is cluster-scoped and managed only by Milo staff.
 //
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Given Name",type=string,JSONPath=`.spec.givenName`
 // +kubebuilder:printcolumn:name="Family Name",type=string,JSONPath=`.spec.familyName`

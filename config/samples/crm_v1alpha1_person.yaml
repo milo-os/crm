@@ -4,7 +4,6 @@ apiVersion: crm.miloapis.com/v1alpha1
 kind: Person
 metadata:
   name: jane-smith
-  namespace: organization-datum
 spec:
   givenName: Jane
   familyName: Smith
