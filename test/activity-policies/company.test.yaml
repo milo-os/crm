@@ -5,7 +5,7 @@ policy_files:
 
 resource_kinds:
   crm.miloapis.com:
-    resources: Company
+    companies: Company
 
 tests:
   - name: create links the new company by its display name
