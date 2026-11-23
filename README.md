@@ -59,7 +59,7 @@ The Activity Policy Tests workflow runs the same check when policies or tests ch
 ### Adding a resource
 
 1. Add `api/crm/v1alpha1/<kind>_types.go` with the type, its list type, kubebuilder markers, and an `init()` that registers both with `SchemeBuilder`.
-2. Mark it `+kubebuilder:resource:scope=Namespaced`; every CRM resource lives in the selling organization's namespace (see [Resource scoping](docs/design/opportunity-led-onboarding.md#resource-scoping)).
+2. Mark it `+kubebuilder:resource:scope=Cluster`; CRM is a platform-level, staff-only tool, so every CRM resource is cluster-scoped (see [Resource scoping](docs/design/opportunity-led-onboarding.md#resource-scoping)).
 3. Run `task generate && task manifests`.
 
 The CRD is written to `config/base/crd/bases`, listed in the CRD kustomization, and registered with the manager's scheme automatically.

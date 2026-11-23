@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 # ActivityPolicy for Company (crm.miloapis.com). Defines how staff changes to
-# Companies appear in the selling organization's activity timeline. Company
+# Companies appear in the activity timeline. Company
 # has no controller yet, so there are no event rules.
 #
 # Design principles:

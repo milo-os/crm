@@ -17,14 +17,12 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
-      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/companies
+      requestURI: /apis/crm.miloapis.com/v1alpha1/companies
       responseStatus:
         code: 201
       responseObject:
         metadata:
           name: acme
-          namespace: organization-datum
         spec:
           displayName: Acme Inc.
     exp_policy: crm.miloapis.com-company
@@ -39,7 +37,6 @@ tests:
       - marker: Acme Inc.
         apiGroup: crm.miloapis.com
         kind: Company
-        namespace: organization-datum
 
   - name: create without a response object falls back to a generic summary
     audit:
@@ -50,7 +47,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
       responseStatus:
         code: 201
     exp_rule: create-fallback
@@ -65,7 +61,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
         name: acme
       responseStatus:
         code: 200
@@ -79,7 +74,6 @@ tests:
       - marker: acme
         apiGroup: crm.miloapis.com
         kind: Company
-        namespace: organization-datum
         name: acme
 
   - name: full update is an update
@@ -91,7 +85,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
         name: acme
       responseStatus:
         code: 200
@@ -107,7 +100,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
         name: acme
       responseStatus:
         code: 200
@@ -124,7 +116,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
       responseStatus:
         code: 422
     exp_no_match: true
@@ -139,7 +130,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
         name: acme
       responseStatus:
         code: 200
@@ -155,7 +145,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
         name: acme
         subresource: status
       responseStatus:
@@ -172,8 +161,7 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
-      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/companies?dryRun=All
+      requestURI: /apis/crm.miloapis.com/v1alpha1/companies?dryRun=All
       responseStatus:
         code: 201
     exp_no_match: true
@@ -188,7 +176,6 @@ tests:
         apiGroup: crm.miloapis.com
         apiVersion: v1alpha1
         resource: companies
-        namespace: organization-datum
       responseStatus:
         code: 200
     exp_no_match: true

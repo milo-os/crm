@@ -23,7 +23,7 @@ spec:
       description: The Company appears when listing Companies.
       try:
         - script:
-            content: kubectl get companies -n $NAMESPACE -o name
+            content: kubectl get companies -o name
             check:
               ($error == null): true
               (contains($stdout, 'company.crm.miloapis.com/acme')): true

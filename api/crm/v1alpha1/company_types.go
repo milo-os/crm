@@ -47,11 +47,11 @@ type OrganizationReference struct {
 	Name string `json:"name"`
 }
 
-// Company is a customer relationship that sales manages in Milo. It lives in
-// the selling organization's namespace.
+// Company is a customer relationship that sales manages in Milo. It is
+// cluster-scoped and managed only by Milo staff.
 //
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:scope=Cluster
 // +kubebuilder:printcolumn:name="Display Name",type=string,JSONPath=`.spec.displayName`
 // +kubebuilder:printcolumn:name="Website",type=string,JSONPath=`.spec.website`
 // +kubebuilder:printcolumn:name="Organizations",type=string,JSONPath=`.spec.organizationRefs[*].name`

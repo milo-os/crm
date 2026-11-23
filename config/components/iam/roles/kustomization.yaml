@@ -1,4 +1,4 @@
-# Roles granted to staff on the selling organization. Add each new CRM
+# Roles granted to Milo staff at the platform level. Add each new CRM
 # resource's permissions to the viewer and admin roles.
 resources:
   - crm-admin.yaml

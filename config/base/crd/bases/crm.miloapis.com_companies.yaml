@@ -12,7 +12,7 @@ spec:
     listKind: CompanyList
     plural: companies
     singular: company
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.displayName
@@ -31,8 +31,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          Company is a customer relationship that sales manages in Milo. It lives in
-          the selling organization's namespace.
+          Company is a customer relationship that sales manages in Milo. It is
+          cluster-scoped and managed only by Milo staff.
         properties:
           apiVersion:
             description: |-
