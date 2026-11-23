@@ -1,0 +1,4 @@
+# One ProtectedResource per CRM resource kind.
+resources:
+  - company.yaml
+  - person.yaml

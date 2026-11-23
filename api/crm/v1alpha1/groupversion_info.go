@@ -2,8 +2,8 @@
 
 // Package v1alpha1 contains API Schema definitions for the crm.miloapis.com v1alpha1 API group.
 //
-// Every CRM resource is namespaced and lives in the selling organization's
-// namespace (organization-<name>). See docs/design/opportunity-led-onboarding.md.
+// CRM is a platform-level, staff-only tool: every CRM resource is cluster-scoped,
+// outside any organization. See docs/design/opportunity-led-onboarding.md.
 // +kubebuilder:object:generate=true
 // +groupName=crm.miloapis.com
 package v1alpha1

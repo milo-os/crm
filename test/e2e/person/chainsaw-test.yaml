@@ -1,0 +1,136 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: person
+spec:
+  description: |
+    Tests the Person resource definition against a real API server:
+    - A Person can be created, read, listed, updated, and deleted.
+    - A Company can have more than one Person.
+    - The User link is status, ignored on create and validated when CRM sets it.
+    - Invalid People are rejected with clear messages.
+
+  steps:
+    - name: create
+      description: A Person with a name, email, and Company is accepted.
+      try:
+        - create:
+            file: resources/company.yaml
+        - create:
+            file: resources/person.yaml
+        - assert:
+            file: assertions/person.yaml
+
+    - name: multiple-people-per-company
+      description: A second Person at the same Company is accepted and both are listed.
+      try:
+        - create:
+            file: resources/second-person.yaml
+        - script:
+            content: kubectl get people -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'person.crm.miloapis.com/jane-smith')): true
+              (contains($stdout, 'person.crm.miloapis.com/john')): true
+
+    - name: update-email
+      description: The email can be changed.
+      try:
+        - patch:
+            file: resources/patch-email.yaml
+        - assert:
+            file: assertions/person-updated.yaml
+
+    - name: reject-blank-given-name-on-update
+      description: Updating to a blank given name is rejected and leaves the Person unchanged.
+      try:
+        - patch:
+            file: resources/patch-blank-given-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.givenName')): true
+                  (contains($error, 'must not be blank')): true
+        - assert:
+            file: assertions/person-updated.yaml
+
+    - name: reject-invalid-people
+      description: Missing and malformed fields are rejected on create.
+      try:
+        - create:
+            file: resources/person-missing-given-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.givenName: Required value'))": true
+        - create:
+            file: resources/person-blank-given-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.givenName')): true
+                  (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/person-missing-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.email: Required value'))": true
+        - create:
+            file: resources/person-invalid-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.email')): true
+                  (contains($error, 'must be an email address')): true
+        - create:
+            file: resources/person-missing-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.companyRef: Required value'))": true
+        - create:
+            file: resources/person-invalid-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef.name')): true
+                  (contains($error, 'must be a valid Company name')): true
+
+    - name: user-link-is-status
+      description: |
+        A userRef sent with the spec on create is dropped, because it is status.
+        Setting it through the status subresource, as CRM does, is accepted
+        when the User name is valid and rejected when it isn't.
+      try:
+        - create:
+            file: resources/person-with-user-on-create.yaml
+        - assert:
+            file: assertions/person-without-user.yaml
+        - script:
+            content: >-
+              kubectl patch person ann --subresource=status --type=merge
+              -p '{"status":{"userRef":{"name":"Not_A_User"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'must be a valid User name')): true
+        - script:
+            content: >-
+              kubectl patch person ann --subresource=status --type=merge
+              -p '{"status":{"userRef":{"name":"340583683847097153"}}}'
+            check:
+              ($error == null): true
+        - assert:
+            file: assertions/person-with-user.yaml
+
+    - name: delete
+      description: Deleting a Person removes it.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: Person
+              name: jane-smith
+        - error:
+            file: assertions/person-exists.yaml

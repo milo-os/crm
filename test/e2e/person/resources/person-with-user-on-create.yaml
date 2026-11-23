@@ -1,0 +1,12 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: ann
+spec:
+  givenName: Ann
+  email: ann@acme.example
+  companyRef:
+    name: globex
+status:
+  userRef:
+    name: "340583683847097153"

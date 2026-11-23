@@ -1,0 +1,12 @@
+# A sales contact at the acme Company. status.userRef, the link to the
+# Person's Milo User, is set by CRM when they redeem an invitation.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: jane-smith
+spec:
+  givenName: Jane
+  familyName: Smith
+  email: jane@acme.example
+  companyRef:
+    name: acme

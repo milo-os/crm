@@ -1,0 +1,121 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: company
+spec:
+  description: |
+    Tests the Company resource definition against a real API server:
+    - A Company can be created, read, listed, updated, and deleted.
+    - It can link to more than one organization.
+    - Invalid Companies are rejected with clear messages.
+
+  steps:
+    - name: create
+      description: A Company with a display name and website is accepted.
+      try:
+        - create:
+            file: resources/company.yaml
+        - assert:
+            file: assertions/company.yaml
+
+    - name: list
+      description: The Company appears when listing Companies.
+      try:
+        - script:
+            content: kubectl get companies -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'company.crm.miloapis.com/acme')): true
+
+    - name: link-organizations
+      description: A Company can reference more than one organization.
+      try:
+        - patch:
+            file: resources/patch-link-organizations.yaml
+        - assert:
+            file: assertions/company-linked.yaml
+
+    - name: reject-blank-display-name-on-update
+      description: Updating to a blank display name is rejected and leaves the Company unchanged.
+      try:
+        - patch:
+            file: resources/patch-blank-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.displayName')): true
+                  (contains($error, 'must not be blank')): true
+        - assert:
+            file: assertions/company-linked.yaml
+
+    - name: reject-invalid-companies
+      description: Missing and malformed fields are rejected on create.
+      try:
+        - create:
+            file: resources/company-missing-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.displayName: Required value'))": true
+        - create:
+            file: resources/company-blank-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.displayName')): true
+                  (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/company-long-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.displayName')): true
+                  (contains($error, 'Too long')): true
+        - create:
+            file: resources/company-invalid-website.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'must be an absolute http or https URL')): true
+        - create:
+            file: resources/company-ftp-website.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'must be an absolute http or https URL')): true
+        - create:
+            file: resources/company-website-without-host.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'must be an absolute http or https URL')): true
+        - create:
+            file: resources/company-invalid-organization.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'must be a valid organization name')): true
+        - create:
+            file: resources/company-organization-without-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.organizationRefs[0].name: Required value'))": true
+        - create:
+            file: resources/company-duplicate-organization.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'Duplicate value')): true
+
+    - name: delete
+      description: Deleting a Company removes only the CRM record.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: Company
+              name: acme
+        - error:
+            file: assertions/company-exists.yaml

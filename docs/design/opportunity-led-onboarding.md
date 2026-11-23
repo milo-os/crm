@@ -39,11 +39,11 @@ A Company normally has one organization but can reference multiple. Multiple Opp
 
 An onboarding record and an invitation have different lifetimes. Resends and replacements continue the same onboarding. Only a deliberate new onboarding creates another organization. A Person is not a User; linking a contact to an authenticated account requires verified identity, not a staff-entered user identifier.
 
-Place CRM records in the selling organization's administrative context. V1 supports one selling organization, with references scoped to it. Records must not depend on the prospective customer's organization existing. Implement namespace, discovery, and cross-context routing using Milo tenancy conventions. References stay within the authorized selling context, except for explicitly controlled links to resulting customer resources.
+CRM records live at the platform level, outside any organization, and only Milo staff manage them, from the staff portal. Records must not depend on the prospective customer's organization existing: staff can add a Company before it has an organization on the platform. The only links from CRM to customer resources are the explicitly controlled links to resulting resources, such as the customer's Organization and BillingAccount.
 
 ### Resource scoping
 
-Every CRM resource is namespaced and lives in the selling organization's namespace, `organization-<name>`, following the convention Milo services such as Billing use for organization-owned resources. No CRM resource is cluster-scoped. References between CRM resources are local names within that namespace, so a record can never point into another selling organization. The only cross-namespace references are the explicitly controlled links to resulting customer resources, such as the customer's Organization and BillingAccount. Staff access is granted per selling organization through Milo IAM on that namespace.
+Every CRM resource is cluster-scoped, like Billing's staff-managed resources such as `Offer` and `ServicePricing`. No organization owns CRM records or can see them. References between CRM resources are plain names. Staff access comes from CRM roles granted to Milo staff at the platform level; the IAM protected resources have no parent organization, so organization roles never reach CRM records.
 
 ## API shape
 
@@ -158,7 +158,7 @@ Verify the deployed Billing and Milo versions provide these existing contracts. 
 
 ## Access and invitation security
 
-One staff-facing onboarding permission covers preparing, sending, resending, replacing, cancelling, viewing progress, and authorizing invoice billing. CRM record access still follows Milo's administrative-context rules. Use a least-privilege service identity for organization, billing, membership, and notification integration.
+One staff-facing onboarding permission covers preparing, sending, resending, replacing, cancelling, viewing progress, and authorizing invoice billing. Only Milo staff can access CRM records. Use a least-privilege service identity for organization, billing, membership, and notification integration.
 
 Recipients receive a limited projection of their current onboarding, not general CRM access. Omit sales notes, Opportunity details, other People, and internal authorization data. Enforce field-level restrictions server-side, including after an invitation has been redeemed. Record agreement version, authenticated User, and acceptance time separately from reusable organization details.
 

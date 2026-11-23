@@ -1,0 +1,206 @@
+# Person (crm.miloapis.com): creates, updates, deletes, and the requests that
+# must not produce activity.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  crm.miloapis.com:
+    people: Person
+
+tests:
+  - name: create links the new person by their full name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      requestURI: /apis/crm.miloapis.com/v1alpha1/people
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: jane-smith
+        spec:
+          givenName: Jane
+          familyName: Smith
+          email: jane@acme.example
+          companyRef:
+            name: acme
+    exp_policy: crm.miloapis.com-person
+    exp_rule: create
+    exp_summary: alice@example.com created person Jane Smith
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: Jane Smith
+        apiGroup: crm.miloapis.com
+        kind: Person
+
+  - name: create without a family name uses the given name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: jane
+        spec:
+          givenName: Jane
+          email: jane@acme.example
+          companyRef:
+            name: acme
+    exp_rule: create
+    exp_summary: alice@example.com created person Jane
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com created a person
+
+  - name: patch changing the email is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+        name: jane-smith
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          email: jane.smith@acme.example
+    exp_rule: update
+    exp_summary: alice@example.com updated person jane-smith
+    exp_links:
+      - marker: jane-smith
+        apiGroup: crm.miloapis.com
+        kind: Person
+        name: jane-smith
+
+  - name: full update is an update
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+        name: jane-smith
+      responseStatus:
+        code: 200
+    exp_rule: update
+    exp_summary: alice@example.com updated person jane-smith
+
+  - name: delete names the removed person
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+        name: jane-smith
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted person jane-smith
+
+  - name: rejected create produces no activity
+    policy: crm.miloapis.com-person
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: system writes produce no activity
+    policy: crm.miloapis.com-person
+    audit:
+      verb: patch
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+        name: jane-smith
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: crm.miloapis.com-person
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+        name: jane-smith
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: crm.miloapis.com-person
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      requestURI: /apis/crm.miloapis.com/v1alpha1/people?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: crm.miloapis.com-person
+    audit:
+      verb: list
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: people
+      responseStatus:
+        code: 200
+    exp_no_match: true

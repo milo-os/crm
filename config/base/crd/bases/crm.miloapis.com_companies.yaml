@@ -1,0 +1,110 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: companies.crm.miloapis.com
+spec:
+  group: crm.miloapis.com
+  names:
+    kind: Company
+    listKind: CompanyList
+    plural: companies
+    singular: company
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: Display Name
+      type: string
+    - jsonPath: .spec.website
+      name: Website
+      type: string
+    - jsonPath: .spec.organizationRefs[*].name
+      name: Organizations
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Company is a customer relationship that sales manages in Milo. It is
+          cluster-scoped and managed only by Milo staff.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CompanySpec is the customer relationship sales manages.
+            properties:
+              displayName:
+                description: DisplayName is the Company's human-readable name.
+                maxLength: 256
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: must not be blank
+                  rule: '!self.matches(''^[[:space:]]*$'')'
+              organizationRefs:
+                description: |-
+                  OrganizationRefs links the Company to the Milo organizations created for
+                  it, normally one. These are links, not ownership: deleting the Company
+                  never deletes an organization.
+                items:
+                  description: |-
+                    OrganizationReference names a Milo organization
+                    (resourcemanager.miloapis.com Organization).
+                  properties:
+                    name:
+                      description: Name is the organization's name.
+                      maxLength: 63
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: 'must be a valid organization name: lowercase letters,
+                          digits, and ''-'', starting and ending with a letter or
+                          digit'
+                        rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+                  required:
+                  - name
+                  type: object
+                maxItems: 50
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              website:
+                description: Website is the Company's public website, an absolute
+                  http or https URL.
+                maxLength: 2048
+                type: string
+                x-kubernetes-validations:
+                - message: must be an absolute http or https URL, such as https://example.com
+                  rule: isURL(self) && url(self).getScheme() in ['http', 'https']
+                    && url(self).getHostname() != ''
+            required:
+            - displayName
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

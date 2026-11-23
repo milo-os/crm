@@ -11,7 +11,7 @@ Native Milo service for the CRM: Companies, People, Opportunities, and opportuni
 - **CRD-based**: kubebuilder v4 CRDs under `crm.miloapis.com/v1alpha1`, served by Milo's API server.
 - **One controller manager**: `cmd/crm` runs the `operator` subcommand (controller-runtime). Reconcilers and admission webhooks are registered in `cmd/crm/cmd/operator.go`.
 - **Milo control plane aware**: the `kubeconfigPath` operator config field points the manager at Milo's API server; empty means in-cluster config.
-- **Scoping**: every CRM resource is namespaced and lives in the selling organization's namespace (`organization-<name>`). Never add a cluster-scoped CRM resource.
+- **Scoping**: CRM is a platform-level, staff-only tool used from the staff portal. Every CRM resource is cluster-scoped, outside any organization, and its IAM protected resource has no parent organization. Never add a namespaced CRM resource.
 
 ## Repo layout
 
@@ -24,7 +24,7 @@ internal/validation/    # admission validation rules, per API group
 test/e2e/               # chainsaw e2e tests, one folder per suite
 internal/config/        # operator configuration (CRMOperator)
 config/base/            # CRDs and manager
-config/components/      # namespace, RBAC, leader election
+config/components/      # namespace, RBAC, leader election, IAM, activity policies
 config/overlays/dev/    # kind development overlay
 hack/                   # boilerplate and generation helpers
 docs/                   # enhancement and design
@@ -32,8 +32,11 @@ docs/                   # enhancement and design
 
 ## Adding a resource
 
-1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Namespaced`, and an `init()` that registers both through `SchemeBuilder.Register`.
-2. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
+1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Cluster`, and an `init()` that registers both with `SchemeBuilder.Register(func(scheme *runtime.Scheme) error {...})` (see `api/crm/v1alpha1/company_types.go`).
+2. Put field rules in the type with kubebuilder markers and CEL (`+kubebuilder:validation:XValidation` with a clear `message`). Webhooks are only for checks the schema can't express, such as references to other records or who is making the request.
+3. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
+4. Test the schema rules with a chainsaw suite under `test/e2e/<kind>/`.
+5. Add a sample to `config/samples/`, a `ProtectedResource` to `config/components/iam/protected-resources/`, its permissions to the `crm.miloapis.com-viewer` and `-admin` roles, and an activity policy (below).
 
 ## Admission webhooks
 

@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: invalid-organization
+spec:
+  displayName: Acme Inc.
+  organizationRefs:
+    - name: Acme_Corp

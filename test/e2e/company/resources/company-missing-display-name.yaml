@@ -1,0 +1,6 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: no-display-name
+spec:
+  website: https://acme.example

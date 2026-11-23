@@ -15,4 +15,6 @@ labels:
       meta.datumapis.com/team: platform
 
 resources:
+  - company-policy.yaml
+  - person-policy.yaml
   - resource-policy.yaml
