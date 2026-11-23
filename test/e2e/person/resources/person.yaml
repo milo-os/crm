@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: jane-smith
+spec:
+  givenName: Jane
+  familyName: Smith
+  email: jane@acme.example
+  companyRef:
+    name: acme

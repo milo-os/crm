@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: missing-company
+spec:
+  givenName: Ann
+  email: ann@acme.example

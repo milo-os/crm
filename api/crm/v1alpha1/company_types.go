@@ -35,18 +35,6 @@ type CompanySpec struct {
 	OrganizationRefs []OrganizationReference `json:"organizationRefs,omitempty"`
 }
 
-// OrganizationReference names a Milo organization
-// (resourcemanager.miloapis.com Organization).
-type OrganizationReference struct {
-	// Name is the organization's name.
-	//
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="must be a valid organization name: lowercase letters, digits, and '-', starting and ending with a letter or digit"
-	Name string `json:"name"`
-}
-
 // Company is a customer relationship that sales manages in Milo. It is
 // cluster-scoped and managed only by Milo staff.
 //

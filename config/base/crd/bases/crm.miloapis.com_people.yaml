@@ -1,0 +1,138 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: people.crm.miloapis.com
+spec:
+  group: crm.miloapis.com
+  names:
+    kind: Person
+    listKind: PersonList
+    plural: people
+    singular: person
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.givenName
+      name: Given Name
+      type: string
+    - jsonPath: .spec.familyName
+      name: Family Name
+      type: string
+    - jsonPath: .spec.email
+      name: Email
+      type: string
+    - jsonPath: .spec.companyRef.name
+      name: Company
+      type: string
+    - jsonPath: .status.userRef.name
+      name: User
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Person is a sales contact at a Company, including people without a Milo
+          account. It lives in the selling organization's namespace.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              PersonSpec is a sales contact at a Company. A Person is not a User: most
+              contacts have no Milo account when sales adds them.
+            properties:
+              companyRef:
+                description: |-
+                  CompanyRef is the Company the Person works for.
+                  A Company can have many People.
+                properties:
+                  name:
+                    description: Name is the Company's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: 'must be a valid Company name: lowercase letters, digits,
+                        ''-'', and ''.'', starting and ending with a letter or digit'
+                      rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+                required:
+                - name
+                type: object
+              email:
+                description: |-
+                  Email is the Person's email address. Changing it does not redirect an
+                  invitation already sent; invitations keep the address they were sent to.
+                maxLength: 254
+                type: string
+                x-kubernetes-validations:
+                - message: must be an email address, such as jane@example.com
+                  rule: self.matches('^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$')
+              familyName:
+                description: FamilyName is the Person's last name.
+                maxLength: 128
+                type: string
+              givenName:
+                description: GivenName is the Person's first name.
+                maxLength: 128
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: must not be blank
+                  rule: '!self.matches(''^[[:space:]]*$'')'
+            required:
+            - companyRef
+            - email
+            - givenName
+            type: object
+          status:
+            description: PersonStatus is what CRM has recorded about the Person.
+            properties:
+              userRef:
+                description: |-
+                  UserRef links the Person to their Milo User, new or existing. CRM sets
+                  it when the Person redeems an invitation, from the signed-in User making
+                  that request, once their verified email matches the invitation. It is
+                  status because only CRM writes it; staff roles can't update status.
+                properties:
+                  name:
+                    description: Name is the User's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: 'must be a valid User name: lowercase letters, digits,
+                        ''-'', and ''.'', starting and ending with a letter or digit'
+                      rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+                required:
+                - name
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

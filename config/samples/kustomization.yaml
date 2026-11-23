@@ -1,3 +1,4 @@
 resources:
 - crm_v1alpha1_company.yaml
+- crm_v1alpha1_person.yaml
 - example_v1alpha1_resource.yaml

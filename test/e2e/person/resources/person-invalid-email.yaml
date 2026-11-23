@@ -1,0 +1,9 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: invalid-email
+spec:
+  givenName: Ann
+  email: ann.acme.example
+  companyRef:
+    name: acme

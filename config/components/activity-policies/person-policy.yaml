@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# ActivityPolicy for Person (crm.miloapis.com). Defines how staff changes to
+# sales contacts appear in the selling organization's activity timeline.
+# Person has no controller yet, so there are no event rules.
+#
+# Design principles:
+# - Action-oriented language ("created person Jane Smith").
+# - Never put the email address in a summary; the name identifies the contact.
+# - Exclude system actors, so CRM linking a Person to their User after
+#   verified sign-in does not create noise.
+# - Record only successful (2xx), non-dry-run requests.
+# - Guard every optional field with has(), because a summary that errors sends
+#   the record to the dead-letter queue.
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ActivityPolicy
+metadata:
+  name: crm.miloapis.com-person
+spec:
+  resource:
+    apiGroup: crm.miloapis.com
+    kind: Person
+
+  auditRules:
+    # "alice@example.com created person Jane Smith"
+    - name: create
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseObject) && has(audit.responseObject.spec) && has(audit.responseObject.spec.givenName) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created person {{ link(audit.responseObject.spec.givenName + (has(audit.responseObject.spec.familyName) ? ' ' + audit.responseObject.spec.familyName : ''), audit.objectRef) }}"
+
+    - name: create-fallback
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created a person"
+
+    # "alice@example.com updated person jane-smith"
+    - name: update
+      match: "!audit.user.username.startsWith('system:') && audit.verb in ['update', 'patch'] && !has(audit.objectRef.subresource) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} updated person {{ link(audit.objectRef.name, audit.objectRef) }}"
+
+    # The Person is gone, so the summary names it without a link.
+    # "alice@example.com deleted person jane-smith"
+    - name: delete
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'delete' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} deleted person {{ audit.objectRef.name }}"

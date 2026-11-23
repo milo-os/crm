@@ -11,3 +11,7 @@ spec:
     - crm.miloapis.com/companies.list
     - crm.miloapis.com/companies.get
     - crm.miloapis.com/companies.watch
+    - crm.miloapis.com/people.list
+    - crm.miloapis.com/people.get
+    - crm.miloapis.com/people/status.get
+    - crm.miloapis.com/people.watch

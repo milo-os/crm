@@ -1,0 +1,27 @@
+apiVersion: iam.miloapis.com/v1alpha1
+kind: ProtectedResource
+metadata:
+  name: crm.miloapis.com-person
+spec:
+  serviceRef:
+    name: "crm.miloapis.com"
+  kind: Person
+  plural: people
+  singular: person
+  permissions:
+    - list
+    - get
+    - create
+    - update
+    - patch
+    - delete
+    - watch
+  subresources:
+    - name: status
+      permissions:
+        - get
+        - update
+        - patch
+  parentResources:
+    - apiGroup: resourcemanager.miloapis.com
+      kind: Organization

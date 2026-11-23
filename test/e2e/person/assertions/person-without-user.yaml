@@ -1,0 +1,5 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: ann
+(status.userRef == null): true

@@ -14,3 +14,7 @@ spec:
     - crm.miloapis.com/companies.update
     - crm.miloapis.com/companies.patch
     - crm.miloapis.com/companies.delete
+    - crm.miloapis.com/people.create
+    - crm.miloapis.com/people.update
+    - crm.miloapis.com/people.patch
+    - crm.miloapis.com/people.delete
