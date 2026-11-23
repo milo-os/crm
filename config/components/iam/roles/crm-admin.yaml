@@ -1,0 +1,16 @@
+apiVersion: iam.miloapis.com/v1alpha1
+kind: Role
+metadata:
+  name: crm.miloapis.com-admin
+  annotations:
+    kubernetes.io/display-name: CRM Admin
+    kubernetes.io/description: "Full access to CRM resources"
+spec:
+  launchStage: Alpha
+  inheritedRoles:
+    - name: crm.miloapis.com-viewer
+  includedPermissions:
+    - crm.miloapis.com/companies.create
+    - crm.miloapis.com/companies.update
+    - crm.miloapis.com/companies.patch
+    - crm.miloapis.com/companies.delete

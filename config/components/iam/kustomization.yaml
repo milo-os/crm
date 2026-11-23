@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# Milo IAM resources for CRM: the resources IAM protects and the roles staff are
+# granted. Applied to the Milo control plane on the deploy side; not part of
+# the dev overlay, because test-infra does not run Milo IAM.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - protected-resources/
+  - roles/

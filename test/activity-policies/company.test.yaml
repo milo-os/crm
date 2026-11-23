@@ -1,0 +1,194 @@
+# Company (crm.miloapis.com): creates, updates, deletes, and the requests that
+# must not produce activity.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  crm.miloapis.com:
+    resources: Company
+
+tests:
+  - name: create links the new company by its display name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/companies
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: acme
+          namespace: organization-datum
+        spec:
+          displayName: Acme Inc.
+    exp_policy: crm.miloapis.com-company
+    exp_rule: create
+    exp_summary: alice@example.com created company Acme Inc.
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: Acme Inc.
+        apiGroup: crm.miloapis.com
+        kind: Company
+        namespace: organization-datum
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com created a company
+
+  - name: patch linking an organization is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+        name: acme
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          organizationRefs:
+            - name: acme
+    exp_rule: update
+    exp_summary: alice@example.com updated company acme
+    exp_links:
+      - marker: acme
+        apiGroup: crm.miloapis.com
+        kind: Company
+        namespace: organization-datum
+        name: acme
+
+  - name: full update is an update
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+        name: acme
+      responseStatus:
+        code: 200
+    exp_rule: update
+    exp_summary: alice@example.com updated company acme
+
+  - name: delete names the removed company
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+        name: acme
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted company acme
+
+  - name: rejected create produces no activity
+    policy: crm.miloapis.com-company
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: system writes produce no activity
+    policy: crm.miloapis.com-company
+    audit:
+      verb: update
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+        name: acme
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: crm.miloapis.com-company
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+        name: acme
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: crm.miloapis.com-company
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+      requestURI: /apis/crm.miloapis.com/v1alpha1/namespaces/organization-datum/companies?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: crm.miloapis.com-company
+    audit:
+      verb: list
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: companies
+        namespace: organization-datum
+      responseStatus:
+        code: 200
+    exp_no_match: true

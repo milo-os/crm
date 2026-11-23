@@ -24,7 +24,7 @@ internal/validation/    # admission validation rules, per API group
 test/e2e/               # chainsaw e2e tests, one folder per suite
 internal/config/        # operator configuration (CRMOperator)
 config/base/            # CRDs and manager
-config/components/      # namespace, RBAC, leader election
+config/components/      # namespace, RBAC, leader election, IAM, activity policies
 config/overlays/dev/    # kind development overlay
 hack/                   # boilerplate and generation helpers
 docs/                   # enhancement and design
@@ -32,8 +32,11 @@ docs/                   # enhancement and design
 
 ## Adding a resource
 
-1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Namespaced`, and an `init()` that registers both through `SchemeBuilder.Register`.
-2. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
+1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Namespaced`, and an `init()` that registers both with `SchemeBuilder.Register(func(scheme *runtime.Scheme) error {...})` (see `api/crm/v1alpha1/company_types.go`).
+2. Put field rules in the type with kubebuilder markers and CEL (`+kubebuilder:validation:XValidation` with a clear `message`). Webhooks are only for checks the schema can't express, such as references to other records or who is making the request.
+3. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
+4. Test the schema rules with a chainsaw suite under `test/e2e/<kind>/`.
+5. Add a sample to `config/samples/`, a `ProtectedResource` to `config/components/iam/protected-resources/`, its permissions to the `crm.miloapis.com-viewer` and `-admin` roles, and an activity policy (below).
 
 ## Admission webhooks
 

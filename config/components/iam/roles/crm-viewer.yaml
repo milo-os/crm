@@ -1,0 +1,13 @@
+apiVersion: iam.miloapis.com/v1alpha1
+kind: Role
+metadata:
+  name: crm.miloapis.com-viewer
+  annotations:
+    kubernetes.io/display-name: CRM Viewer
+    kubernetes.io/description: "View access to CRM resources"
+spec:
+  launchStage: Alpha
+  includedPermissions:
+    - crm.miloapis.com/companies.list
+    - crm.miloapis.com/companies.get
+    - crm.miloapis.com/companies.watch

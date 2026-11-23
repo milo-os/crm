@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# ActivityPolicy for Company (crm.miloapis.com). Defines how staff changes to
+# Companies appear in the selling organization's activity timeline. Company
+# has no controller yet, so there are no event rules.
+#
+# Design principles:
+# - Action-oriented language ("created company Acme Inc.").
+# - Exclude system actors so controller and service writes do not create noise.
+# - Record only successful (2xx), non-dry-run requests.
+# - Guard every optional field with has(), because a summary that errors sends
+#   the record to the dead-letter queue.
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ActivityPolicy
+metadata:
+  name: crm.miloapis.com-company
+spec:
+  resource:
+    apiGroup: crm.miloapis.com
+    kind: Company
+
+  auditRules:
+    # "alice@example.com created company Acme Inc."
+    - name: create
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseObject) && has(audit.responseObject.spec) && has(audit.responseObject.spec.displayName) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created company {{ link(audit.responseObject.spec.displayName, audit.objectRef) }}"
+
+    - name: create-fallback
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created a company"
+
+    # "alice@example.com updated company acme"
+    - name: update
+      match: "!audit.user.username.startsWith('system:') && audit.verb in ['update', 'patch'] && !has(audit.objectRef.subresource) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} updated company {{ link(audit.objectRef.name, audit.objectRef) }}"
+
+    # The Company is gone, so the summary names it without a link.
+    # "alice@example.com deleted company acme"
+    - name: delete
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'delete' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} deleted company {{ audit.objectRef.name }}"

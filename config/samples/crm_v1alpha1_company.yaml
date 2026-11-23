@@ -1,0 +1,13 @@
+# A Company in the selling organization's namespace, linked to the Milo
+# organization created for it during onboarding. A new Company usually has no
+# organizationRefs yet.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: acme
+  namespace: organization-datum
+spec:
+  displayName: Acme Inc.
+  website: https://acme.example
+  organizationRefs:
+    - name: acme

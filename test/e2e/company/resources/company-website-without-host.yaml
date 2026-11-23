@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: website-without-host
+spec:
+  displayName: Acme Inc.
+  website: https://

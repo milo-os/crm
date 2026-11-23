@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: ftp-website
+spec:
+  displayName: Acme Inc.
+  website: ftp://acme.example
