@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: initech-initial-sale
+spec:
+  displayName: Initech initial sale
+  companyRef:
+    name: initech
+  ownerRef:
+    name: "340583683847097153"
+  stage: Prospecting

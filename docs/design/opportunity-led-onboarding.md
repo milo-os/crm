@@ -41,6 +41,19 @@ An onboarding record and an invitation have different lifetimes. Resends and rep
 
 CRM records live at the platform level, outside any organization, and only Milo staff manage them, from the staff portal. Records must not depend on the prospective customer's organization existing: staff can add a Company before it has an organization on the platform. The only links from CRM to customer resources are the explicitly controlled links to resulting resources, such as the customer's Organization and BillingAccount.
 
+### Opportunity stages
+
+Staff move an Opportunity through these stages by hand. A new Opportunity starts at Prospecting. Onboarding can start at any stage, and completing it never changes the stage.
+
+| Stage | Meaning |
+| --- | --- |
+| `Prospecting` | A potential sale sales has identified but not yet qualified |
+| `Qualification` | Sales is confirming the fit: need, budget, and decision makers |
+| `Proposal` | An offer has been sent to the customer |
+| `Negotiation` | Terms are being agreed |
+| `ClosedWon` | The customer agreed to the sale |
+| `ClosedLost` | The sale will not happen |
+
 ### Resource scoping
 
 Every CRM resource is cluster-scoped, like Billing's staff-managed resources such as `Offer` and `ServicePricing`. No organization owns CRM records or can see them. References between CRM resources are plain names. Staff access comes from CRM roles granted to Milo staff at the platform level; the IAM protected resources have no parent organization, so organization roles never reach CRM records.

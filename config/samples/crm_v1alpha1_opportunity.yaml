@@ -1,0 +1,15 @@
+# A potential sale with the acme Company, owned by a staff User. stage
+# defaults to Prospecting; staff move it by hand.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: acme-initial-sale
+spec:
+  displayName: Acme initial sale
+  companyRef:
+    name: acme
+  personRefs:
+    - name: jane-smith
+  ownerRef:
+    name: "340583683847097153"
+  stage: Proposal

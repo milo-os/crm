@@ -1,0 +1,215 @@
+# Opportunity (crm.miloapis.com): creates, stage moves, updates, deletes, and
+# the requests that must not produce activity.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  crm.miloapis.com:
+    opportunities: Opportunity
+
+tests:
+  - name: create links the new opportunity by its display name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+      requestURI: /apis/crm.miloapis.com/v1alpha1/opportunities
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: acme-initial-sale
+        spec:
+          displayName: Acme initial sale
+          companyRef:
+            name: acme
+          ownerRef:
+            name: "340583683847097153"
+          stage: Prospecting
+    exp_policy: crm.miloapis.com-opportunity
+    exp_rule: create
+    exp_summary: alice@example.com created opportunity Acme initial sale
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: Acme initial sale
+        apiGroup: crm.miloapis.com
+        kind: Opportunity
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com created an opportunity
+
+  - name: patch moving the stage says where it moved
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          stage: Proposal
+    exp_rule: stage
+    exp_summary: alice@example.com moved opportunity acme-initial-sale to Proposal
+    exp_links:
+      - marker: acme-initial-sale
+        apiGroup: crm.miloapis.com
+        kind: Opportunity
+        name: acme-initial-sale
+
+  - name: patch adding a person is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          personRefs:
+            - name: jane-smith
+    exp_rule: update
+    exp_summary: alice@example.com updated opportunity acme-initial-sale
+    exp_links:
+      - marker: acme-initial-sale
+        apiGroup: crm.miloapis.com
+        kind: Opportunity
+        name: acme-initial-sale
+
+  - name: full update carrying the stage is an update, not a stage move
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+      responseStatus:
+        code: 200
+      requestObject:
+        metadata:
+          name: acme-initial-sale
+        spec:
+          displayName: Acme initial sale
+          stage: Negotiation
+    exp_rule: update
+    exp_summary: alice@example.com updated opportunity acme-initial-sale
+
+  - name: delete names the removed opportunity
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted opportunity acme-initial-sale
+
+  - name: rejected create produces no activity
+    policy: crm.miloapis.com-opportunity
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: system writes produce no activity
+    policy: crm.miloapis.com-opportunity
+    audit:
+      verb: update
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: crm.miloapis.com-opportunity
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+        name: acme-initial-sale
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: crm.miloapis.com-opportunity
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+      requestURI: /apis/crm.miloapis.com/v1alpha1/opportunities?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: crm.miloapis.com-opportunity
+    audit:
+      verb: list
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: opportunities
+      responseStatus:
+        code: 200
+    exp_no_match: true

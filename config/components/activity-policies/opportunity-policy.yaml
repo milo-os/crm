@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# ActivityPolicy for Opportunity (crm.miloapis.com). Defines how staff changes
+# to sales opportunities appear in the activity timeline. Opportunity has no controller yet, so there are no event rules.
+#
+# Design principles:
+# - Action-oriented language ("moved opportunity ... to Proposal").
+# - Say when a person moves the stage, rather than "updated". Only patches that
+#   set the stage match, because a full update always carries the stage and
+#   would misreport unrelated edits.
+# - Exclude system actors so controller and service writes do not create noise.
+# - Record only successful (2xx), non-dry-run requests.
+# - Guard every optional field with has(), because a summary that errors sends
+#   the record to the dead-letter queue.
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ActivityPolicy
+metadata:
+  name: crm.miloapis.com-opportunity
+spec:
+  resource:
+    apiGroup: crm.miloapis.com
+    kind: Opportunity
+
+  auditRules:
+    # "alice@example.com created opportunity Acme initial sale"
+    - name: create
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseObject) && has(audit.responseObject.spec) && has(audit.responseObject.spec.displayName) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created opportunity {{ link(audit.responseObject.spec.displayName, audit.objectRef) }}"
+
+    - name: create-fallback
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} created an opportunity"
+
+    # "alice@example.com moved opportunity acme-initial-sale to Proposal"
+    - name: stage
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'patch' && !has(audit.objectRef.subresource) && type(audit.requestObject) == map && has(audit.requestObject.spec) && type(audit.requestObject.spec) == map && has(audit.requestObject.spec.stage) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} moved opportunity {{ link(audit.objectRef.name, audit.objectRef) }} to {{ audit.requestObject.spec.stage }}"
+
+    # "alice@example.com updated opportunity acme-initial-sale"
+    - name: update
+      match: "!audit.user.username.startsWith('system:') && audit.verb in ['update', 'patch'] && !has(audit.objectRef.subresource) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} updated opportunity {{ link(audit.objectRef.name, audit.objectRef) }}"
+
+    # The Opportunity is gone, so the summary names it without a link.
+    # "alice@example.com deleted opportunity acme-initial-sale"
+    - name: delete
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'delete' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} deleted opportunity {{ audit.objectRef.name }}"
