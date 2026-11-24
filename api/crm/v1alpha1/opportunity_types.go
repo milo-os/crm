@@ -41,6 +41,15 @@ type OpportunitySpec struct {
 	// +kubebuilder:validation:XValidation:rule="!self.matches('^[[:space:]]*$')",message="must not be blank"
 	DisplayName string `json:"displayName"`
 
+	// Description is a short summary of what the sale is about, such as what
+	// the customer wants to buy. Keep it current by editing it in place.
+	// Interactions and follow-ups belong in ClusterNotes, not here: see
+	// Opportunity.
+	//
+	// +optional
+	// +kubebuilder:validation:MaxLength=2000
+	Description string `json:"description,omitempty"`
+
 	// CompanyRef is the Company the sale is with. A Company can have many
 	// Opportunities.
 	//
@@ -70,6 +79,14 @@ type OpportunitySpec struct {
 
 // Opportunity is a potential sale with a Company that sales tracks through
 // its stages. It is cluster-scoped and managed only by Milo staff.
+//
+// Track the history of a sale, such as calls, meetings, and follow-ups, with
+// ClusterNotes (notes.miloapis.com), the Milo platform primitive for notes on
+// cluster-scoped resources. Set the note's subjectRef to the Opportunity
+// (apiGroup crm.miloapis.com, kind Opportunity, and its name) and use
+// nextAction, nextActionTime, and followUp to track what happens next. Milo
+// deletes a note when its subject is deleted. CRM resources have no notes
+// fields of their own.
 //
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster

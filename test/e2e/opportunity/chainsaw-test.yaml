@@ -37,8 +37,8 @@ spec:
               (contains($stdout, 'opportunity.crm.miloapis.com/initech-initial-sale')): true
               (contains($stdout, 'opportunity.crm.miloapis.com/initech-expansion')): true
 
-    - name: move-stage-and-add-people
-      description: Staff can move the stage and add the People involved.
+    - name: describe-move-stage-and-add-people
+      description: Staff can describe the sale, move the stage, and add the People involved.
       try:
         - patch:
             file: resources/patch-stage-and-people.yaml
@@ -74,6 +74,13 @@ spec:
                   ($error != null): true
                   (contains($error, 'spec.displayName')): true
                   (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/opportunity-long-description.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.description')): true
+                  (contains($error, 'Too long')): true
         - create:
             file: resources/opportunity-missing-company.yaml
             expect:

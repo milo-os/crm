@@ -3,6 +3,7 @@ kind: Opportunity
 metadata:
   name: initech-initial-sale
 spec:
+  description: Hosting for the TPS report platform.
   stage: Proposal
   personRefs:
     - name: peter-gibbons
