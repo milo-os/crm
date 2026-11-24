@@ -18,3 +18,7 @@ spec:
     - crm.miloapis.com/opportunities.list
     - crm.miloapis.com/opportunities.get
     - crm.miloapis.com/opportunities.watch
+    - crm.miloapis.com/organizationonboardings.list
+    - crm.miloapis.com/organizationonboardings.get
+    - crm.miloapis.com/organizationonboardings/status.get
+    - crm.miloapis.com/organizationonboardings.watch

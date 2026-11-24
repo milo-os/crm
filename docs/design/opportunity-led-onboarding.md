@@ -87,6 +87,8 @@ spec:
     paymentArrangement: Invoice
 ```
 
+Status holds the onboarding's progress, written only by CRM: its phase, current invitation, the invoice authorization (who chose Invoice and when), the resulting organization and billing account, the completion time, and conditions. Staff roles can read status but not change it, so clients can't set completion state or forge invoice authorization. The Company and Opportunity can't be changed after creation. Billing only bills in USD today, so USD is the only accepted currency until Billing supports more.
+
 The billing block is a CRM draft choice, not a proposed field on BillingAccount. Staff choose the billing account currency when preparing the draft; CRM sets it on the BillingAccount using Billing’s existing currency field and supported values. Billing contact details follow Billing’s existing contract. For Invoice, CRM creates a BillingArrangement for the account; Card uses the existing payment-method flow. CRM stores no payment credentials.
 
 Example invitation:
@@ -147,6 +149,19 @@ Use stable identities derived from the onboarding UID for provisioned resources 
 Completion requires validated organization details, required agreements for the current recipient, billing readiness, organization readiness, and effective first-administrator access. Create the administrator membership for the verified completing User, not the salesperson or CRM service account. Show “Finishing setup” while controllers reconcile and mark Complete only after the organization, billing requirements, and administrator permission bindings are ready. Controller delays do not introduce manual review. Preserve completion as a historical event; later billing suspension belongs to ongoing account lifecycle management.
 
 Notify the Opportunity owner once completion occurs, link the resulting organization to the Company and Opportunity, and leave the Opportunity stage unchanged. Email delivery failure must be retryable without reversing a completed onboarding. For v1, retain saved progress and partially created organizations and financial records when onboarding is abandoned or canceled. Do not implement automatic deletion or cascade financial-resource deletion from CRM ownership. Expiration and cancellation revoke onboarding access. Automated retention and cleanup policy is deferred beyond v1.
+
+### Provisioned resources
+
+CRM's controllers create resources in other services: the Organization, the BillingAccount, the Invoice BillingArrangement, and the first administrator's OrganizationMembership. They follow the fan-out pattern in service-catalog (`billing_fanout.go` and the provisioning controller), with one deliberate difference: CRM never owns what it creates.
+
+- **Provenance labels.** Every provisioned resource carries `app.kubernetes.io/managed-by: crm.miloapis.com`, `crm.miloapis.com/organization-onboarding: <name>`, and `crm.miloapis.com/organization-onboarding-uid: <uid>`. The UID label is the authority: a new onboarding can reuse a name, never a UID.
+- **No owner references.** Service-catalog sets a controller owner reference so deleting its record garbage-collects what it made. CRM must not: deleting an onboarding must never delete a live organization or billing account. Labels record where a resource came from; nothing ties its lifetime to the onboarding.
+- **Stable names.** Names derive from the onboarding UID, so a retry or restart finds the resource it already created instead of creating a second one.
+- **Check before reuse.** Before writing to a name that already exists, check that it carries this onboarding's UID label. If it doesn't, leave it untouched and report a condition with reason `ObjectExists`, rather than taking it over.
+- **Server-side apply.** Write with server-side apply under a named field manager, `crm-operator`, with one manager per controller so they don't contend over fields. Use the typed apply configurations Billing and Milo publish, such as `go.miloapis.com/billing/applyconfiguration`.
+- **Stop writing after completion.** Apply the onboarding's details until it completes, then stop. After completion the customer owns their organization and billing settings, and a reconcile must not revert their changes from the onboarding's draft. CRM only reads readiness from then on.
+- **Never delete.** CRM doesn't prune or clean up what it provisioned; abandoned or cancelled onboardings keep their partial resources in v1.
+- **Report per resource.** Conditions on the onboarding name each resource's state, such as `OrganizationReady` and `BillingAccountReady`, with reasons such as `ObjectExists` or `ApplyFailed`.
 
 ## Invoice and card billing
 

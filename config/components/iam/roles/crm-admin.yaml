@@ -22,3 +22,7 @@ spec:
     - crm.miloapis.com/opportunities.update
     - crm.miloapis.com/opportunities.patch
     - crm.miloapis.com/opportunities.delete
+    - crm.miloapis.com/organizationonboardings.create
+    - crm.miloapis.com/organizationonboardings.update
+    - crm.miloapis.com/organizationonboardings.patch
+    - crm.miloapis.com/organizationonboardings.delete

@@ -1,0 +1,15 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: too-many-invoice-emails
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: hooli-initial-sale
+  billing:
+    currency: USD
+    contactInfo:
+      invoiceEmails:
+        - invoices@hooli.example
+        - finance@hooli.example

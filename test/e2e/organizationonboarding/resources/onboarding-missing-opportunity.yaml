@@ -1,0 +1,9 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: missing-opportunity
+spec:
+  companyRef:
+    name: hooli
+  billing:
+    currency: USD

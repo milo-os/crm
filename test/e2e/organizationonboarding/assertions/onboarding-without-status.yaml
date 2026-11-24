@@ -1,0 +1,6 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: status-on-create
+(status.phase == null): true
+(status.organizationRef == null): true

@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# ActivityPolicy for OrganizationOnboarding (crm.miloapis.com). Defines how
+# staff changes to onboarding drafts appear in the activity timeline.
+# OrganizationOnboarding has no controller or actions yet, so there are no
+# event rules and no lifecycle summaries such as "sent" or "completed".
+#
+# Design principles:
+# - Action-oriented language ("started onboarding ...").
+# - Name the onboarding, never its contact details, so emails and addresses
+#   stay out of the timeline.
+# - Exclude system actors so controller and service writes do not create noise.
+# - Record only successful (2xx), non-dry-run requests.
+# - Guard every optional field with has(), because a summary that errors sends
+#   the record to the dead-letter queue.
+apiVersion: activity.miloapis.com/v1alpha1
+kind: ActivityPolicy
+metadata:
+  name: crm.miloapis.com-organizationonboarding
+spec:
+  resource:
+    apiGroup: crm.miloapis.com
+    kind: OrganizationOnboarding
+
+  auditRules:
+    # "alice@example.com started onboarding acme-onboarding"
+    - name: create
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseObject) && has(audit.responseObject.metadata) && has(audit.responseObject.metadata.name) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} started onboarding {{ link(audit.responseObject.metadata.name, audit.objectRef) }}"
+
+    - name: create-fallback
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'create' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} started an onboarding"
+
+    # "alice@example.com updated onboarding acme-onboarding"
+    - name: update
+      match: "!audit.user.username.startsWith('system:') && audit.verb in ['update', 'patch'] && !has(audit.objectRef.subresource) && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} updated onboarding {{ link(audit.objectRef.name, audit.objectRef) }}"
+
+    # The onboarding is gone, so the summary names it without a link.
+    # "alice@example.com deleted onboarding acme-onboarding"
+    - name: delete
+      match: "!audit.user.username.startsWith('system:') && audit.verb == 'delete' && has(audit.responseStatus.code) && audit.responseStatus.code >= 200 && audit.responseStatus.code < 300 && !(has(audit.requestURI) && audit.requestURI.contains('dryRun='))"
+      summary: "{{ actor }} deleted onboarding {{ audit.objectRef.name }}"

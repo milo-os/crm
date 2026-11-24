@@ -1,0 +1,230 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: organizationonboarding
+spec:
+  description: |
+    Tests the OrganizationOnboarding resource definition against a real API server:
+    - A draft can be created, read, updated, and deleted.
+    - The payment arrangement defaults to Card, and only supported currencies
+      and arrangements are accepted.
+    - The Company and Opportunity can't be changed.
+    - Progress is status: clients can't set it with the spec, and CRM's status
+      writes are validated.
+    - Invalid drafts are rejected with clear messages.
+
+  steps:
+    - name: create
+      description: A draft with only its references and currency is accepted and defaults to Card.
+      try:
+        - create:
+            file: resources/company.yaml
+        - create:
+            file: resources/opportunity.yaml
+        - create:
+            file: resources/onboarding.yaml
+        - assert:
+            file: assertions/onboarding.yaml
+
+    - name: prepare-details
+      description: Staff can fill in organization and billing details, including a partial address, tax IDs, and invoice details, and choose Invoice.
+      try:
+        - patch:
+            file: resources/patch-details.yaml
+        - assert:
+            file: assertions/onboarding-details.yaml
+
+    - name: references-are-immutable
+      description: The Company and Opportunity can't be changed, and the draft is left unchanged.
+      try:
+        - patch:
+            file: resources/patch-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef')): true
+                  (contains($error, 'be changed')): true
+        - patch:
+            file: resources/patch-opportunity.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.opportunityRef')): true
+                  (contains($error, 'be changed')): true
+        - assert:
+            file: assertions/onboarding-details.yaml
+
+    - name: progress-is-status
+      description: |
+        Status sent with the spec on create is dropped, so clients can't set
+        completion state. Status written through the status subresource, as CRM
+        does, is validated.
+      try:
+        - create:
+            file: resources/onboarding-with-status-on-create.yaml
+        - assert:
+            file: assertions/onboarding-without-status.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Finished"}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'Unsupported value')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Invited","currentInvitationRef":{"name":"gavin-belson"}}}'
+            check:
+              ($error == null): true
+        - assert:
+            file: assertions/onboarding-invited.yaml
+
+    - name: reject-invalid-drafts
+      description: Missing and malformed fields are rejected on create.
+      try:
+        - create:
+            file: resources/onboarding-missing-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.companyRef: Required value'))": true
+        - create:
+            file: resources/onboarding-invalid-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef.name')): true
+                  (contains($error, 'must be a valid Company name')): true
+        - create:
+            file: resources/onboarding-missing-opportunity.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.opportunityRef: Required value'))": true
+        - create:
+            file: resources/onboarding-invalid-opportunity.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.opportunityRef.name')): true
+                  (contains($error, 'must be a valid Opportunity name')): true
+        - create:
+            file: resources/onboarding-missing-billing.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.billing: Required value'))": true
+        - create:
+            file: resources/onboarding-missing-currency.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.billing.currency: Required value'))": true
+        - create:
+            file: resources/onboarding-unsupported-currency.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.currency')): true
+                  (contains($error, 'Unsupported value')): true
+        - create:
+            file: resources/onboarding-unsupported-arrangement.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.paymentArrangement')): true
+                  (contains($error, 'Unsupported value')): true
+        - create:
+            file: resources/onboarding-blank-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.organizationDetails.displayName')): true
+                  (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/onboarding-invalid-contact-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.organizationDetails.contactInfo.email')): true
+                  (contains($error, 'must be an email address')): true
+        - create:
+            file: resources/onboarding-invalid-billing-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.contactInfo.email')): true
+                  (contains($error, 'must be an email address')): true
+        - create:
+            file: resources/onboarding-invalid-invoice-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.contactInfo.invoiceEmails[0]')): true
+                  (contains($error, 'must be an email address')): true
+        - create:
+            file: resources/onboarding-invalid-country.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.contactInfo.address.country')): true
+                  (contains($error, 'must be a two-letter country code')): true
+        - create:
+            file: resources/onboarding-invoice-details-with-card.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'invoice details can only be set when paymentArrangement is Invoice')): true
+        - create:
+            file: resources/onboarding-invalid-accounts-payable-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.invoice.accountsPayableEmail')): true
+                  (contains($error, 'must be an email address')): true
+        - create:
+            file: resources/onboarding-invalid-tax-id-type.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.taxIds[0].type')): true
+                  (contains($error, 'must be <jurisdiction>_<scheme>')): true
+        - create:
+            file: resources/onboarding-missing-tax-id-value.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.billing.taxIds[0].value: Required value'))": true
+        - create:
+            file: resources/onboarding-duplicate-tax-id-type.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'Duplicate value')): true
+        - create:
+            file: resources/onboarding-blank-tax-id-value.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.taxIds[0].value')): true
+                  (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/onboarding-too-many-invoice-emails.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.contactInfo.invoiceEmails')): true
+                  (contains($error, 'Too many')): true
+
+    - name: delete
+      description: Deleting an onboarding removes it.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: OrganizationOnboarding
+              name: hooli-onboarding
+        - error:
+            file: assertions/onboarding-exists.yaml

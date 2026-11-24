@@ -1,0 +1,14 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: invalid-contact-email
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: hooli-initial-sale
+  organizationDetails:
+    contactInfo:
+      email: not-an-email
+  billing:
+    currency: USD
