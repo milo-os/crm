@@ -1,0 +1,168 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: opportunities.crm.miloapis.com
+spec:
+  group: crm.miloapis.com
+  names:
+    kind: Opportunity
+    listKind: OpportunityList
+    plural: opportunities
+    singular: opportunity
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: Display Name
+      type: string
+    - jsonPath: .spec.companyRef.name
+      name: Company
+      type: string
+    - jsonPath: .spec.stage
+      name: Stage
+      type: string
+    - jsonPath: .spec.ownerRef.name
+      name: Owner
+      type: string
+    - jsonPath: .spec.personRefs[*].name
+      name: People
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Opportunity is a potential sale with a Company that sales tracks through
+          its stages. It is cluster-scoped and managed only by Milo staff.
+
+          Track the history of a sale, such as calls, meetings, and follow-ups, with
+          ClusterNotes (notes.miloapis.com), the Milo platform primitive for notes on
+          cluster-scoped resources. Set the note's subjectRef to the Opportunity
+          (apiGroup crm.miloapis.com, kind Opportunity, and its name) and use
+          nextAction, nextActionTime, and followUp to track what happens next. Milo
+          deletes a note when its subject is deleted. CRM resources have no notes
+          fields of their own.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OpportunitySpec is a potential sale with a Company.
+            properties:
+              companyRef:
+                description: |-
+                  CompanyRef is the Company the sale is with. A Company can have many
+                  Opportunities.
+                properties:
+                  name:
+                    description: Name is the Company's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: 'must be a valid Company name: lowercase letters, digits,
+                        ''-'', and ''.'', starting and ending with a letter or digit'
+                      rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+                required:
+                - name
+                type: object
+              description:
+                description: |-
+                  Description is a short summary of what the sale is about, such as what
+                  the customer wants to buy. Keep it current by editing it in place.
+                  Interactions and follow-ups belong in ClusterNotes, not here: see
+                  Opportunity.
+                maxLength: 2000
+                type: string
+              displayName:
+                description: DisplayName is the Opportunity's human-readable name.
+                maxLength: 256
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: must not be blank
+                  rule: '!self.matches(''^[[:space:]]*$'')'
+              ownerRef:
+                description: |-
+                  OwnerRef is the staff Milo User who owns the sale. The owner is notified
+                  when onboarding started from this Opportunity completes.
+                properties:
+                  name:
+                    description: Name is the User's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: 'must be a valid User name: lowercase letters, digits,
+                        ''-'', and ''.'', starting and ending with a letter or digit'
+                      rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+                required:
+                - name
+                type: object
+              personRefs:
+                description: PersonRefs are the People involved in the sale.
+                items:
+                  description: |-
+                    PersonReference names a Person. CRM resources are cluster-scoped, so the
+                    name alone identifies it.
+                  properties:
+                    name:
+                      description: Name is the Person's name.
+                      maxLength: 253
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: 'must be a valid Person name: lowercase letters,
+                          digits, ''-'', and ''.'', starting and ending with a letter
+                          or digit'
+                        rule: self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
+                  required:
+                  - name
+                  type: object
+                maxItems: 50
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              stage:
+                default: Prospecting
+                description: Stage is where the sale is in the sales process.
+                enum:
+                - Prospecting
+                - Qualification
+                - Proposal
+                - Negotiation
+                - ClosedWon
+                - ClosedLost
+                type: string
+            required:
+            - companyRef
+            - displayName
+            - ownerRef
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

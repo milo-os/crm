@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: missing-company
+spec:
+  displayName: Deal
+  ownerRef:
+    name: "340583683847097153"

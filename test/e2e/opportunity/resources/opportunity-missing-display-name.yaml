@@ -1,0 +1,9 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: missing-display-name
+spec:
+  companyRef:
+    name: initech
+  ownerRef:
+    name: "340583683847097153"

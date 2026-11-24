@@ -16,5 +16,6 @@ labels:
 
 resources:
   - company-policy.yaml
+  - opportunity-policy.yaml
   - person-policy.yaml
   - resource-policy.yaml

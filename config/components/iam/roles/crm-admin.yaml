@@ -18,3 +18,7 @@ spec:
     - crm.miloapis.com/people.update
     - crm.miloapis.com/people.patch
     - crm.miloapis.com/people.delete
+    - crm.miloapis.com/opportunities.create
+    - crm.miloapis.com/opportunities.update
+    - crm.miloapis.com/opportunities.patch
+    - crm.miloapis.com/opportunities.delete

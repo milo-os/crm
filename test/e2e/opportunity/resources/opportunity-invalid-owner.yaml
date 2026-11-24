@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: invalid-owner
+spec:
+  displayName: Deal
+  companyRef:
+    name: initech
+  ownerRef:
+    name: Not_A_User

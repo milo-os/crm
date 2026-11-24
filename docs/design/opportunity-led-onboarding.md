@@ -31,7 +31,7 @@ flowchart TD
 | --- | --- | --- |
 | `Company` | Customer relationship | Display name, website, organization links |
 | `Person` | Sales contact, including people without accounts | Name, email, Company reference, optional verified Milo User reference |
-| `Opportunity` | Potential sale | Company reference, involved People, owner User reference, stage |
+| `Opportunity` | Potential sale | Short description, Company reference, involved People, owner User reference, stage |
 | `OrganizationOnboarding` | Durable setup journey for one organization | Company and originating Opportunity references, saved organization and billing details, selected billing currency and arrangement, lifecycle, resulting organization and billing account references |
 | `OnboardingInvitation` | One recipient's invitation | Onboarding and Person references, immutable recipient email, expiration, trusted inviter identity, delivery and redemption state |
 
@@ -40,6 +40,21 @@ A Company normally has one organization but can reference multiple. Multiple Opp
 An onboarding record and an invitation have different lifetimes. Resends and replacements continue the same onboarding. Only a deliberate new onboarding creates another organization. A Person is not a User; linking a contact to an authenticated account requires verified identity, not a staff-entered user identifier.
 
 CRM records live at the platform level, outside any organization, and only Milo staff manage them, from the staff portal. Records must not depend on the prospective customer's organization existing: staff can add a Company before it has an organization on the platform. The only links from CRM to customer resources are the explicitly controlled links to resulting resources, such as the customer's Organization and BillingAccount.
+
+Notes and follow-ups on CRM records use Milo's `ClusterNote` (`notes.miloapis.com`), the platform primitive for notes on cluster-scoped resources, with the CRM record as the note's subject. Its next action, due time, and follow-up flag track what happens next, and Milo deletes a record's notes with it. CRM resources have no notes fields of their own; an Opportunity's description is only a short summary of the sale.
+
+### Opportunity stages
+
+Staff move an Opportunity through these stages by hand. A new Opportunity starts at Prospecting. Onboarding can start at any stage, and completing it never changes the stage.
+
+| Stage | Meaning |
+| --- | --- |
+| `Prospecting` | A potential sale sales has identified but not yet qualified |
+| `Qualification` | Sales is confirming the fit: need, budget, and decision makers |
+| `Proposal` | An offer has been sent to the customer |
+| `Negotiation` | Terms are being agreed |
+| `ClosedWon` | The customer agreed to the sale |
+| `ClosedLost` | The sale will not happen |
 
 ### Resource scoping
 

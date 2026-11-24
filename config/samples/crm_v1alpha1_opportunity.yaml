@@ -1,0 +1,17 @@
+# A potential sale with the acme Company, owned by a staff User. stage
+# defaults to Prospecting; staff move it by hand. Calls and follow-ups go in
+# ClusterNotes whose subjectRef names this Opportunity.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: acme-initial-sale
+spec:
+  displayName: Acme initial sale
+  description: Edge compute for the EU launch, about 50 nodes, starting in Q1.
+  companyRef:
+    name: acme
+  personRefs:
+    - name: jane-smith
+  ownerRef:
+    name: "340583683847097153"
+  stage: Proposal

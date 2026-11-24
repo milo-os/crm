@@ -15,3 +15,6 @@ spec:
     - crm.miloapis.com/people.get
     - crm.miloapis.com/people/status.get
     - crm.miloapis.com/people.watch
+    - crm.miloapis.com/opportunities.list
+    - crm.miloapis.com/opportunities.get
+    - crm.miloapis.com/opportunities.watch

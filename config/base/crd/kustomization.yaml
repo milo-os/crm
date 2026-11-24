@@ -2,5 +2,6 @@
 # Lists every CRD in bases/. Run `task manifests` after adding a resource.
 resources:
 - bases/crm.miloapis.com_companies.yaml
+- bases/crm.miloapis.com_opportunities.yaml
 - bases/crm.miloapis.com_people.yaml
 - bases/example.miloapis.com_resources.yaml

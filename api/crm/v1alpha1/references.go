@@ -14,6 +14,18 @@ type CompanyReference struct {
 	Name string `json:"name"`
 }
 
+// PersonReference names a Person. CRM resources are cluster-scoped, so the
+// name alone identifies it.
+type PersonReference struct {
+	// Name is the Person's name.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid Person name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
+	Name string `json:"name"`
+}
+
 // OrganizationReference names a Milo organization
 // (resourcemanager.miloapis.com Organization).
 type OrganizationReference struct {

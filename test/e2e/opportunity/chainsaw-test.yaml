@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: opportunity
+spec:
+  description: |
+    Tests the Opportunity resource definition against a real API server:
+    - An Opportunity can be created, read, listed, updated, and deleted.
+    - A new Opportunity starts at Prospecting.
+    - A Company can have more than one Opportunity.
+    - Only the agreed stages are accepted, and invalid Opportunities are
+      rejected with clear messages.
+
+  steps:
+    - name: create
+      description: An Opportunity without a stage is accepted and starts at Prospecting.
+      try:
+        - create:
+            file: resources/company.yaml
+        - create:
+            file: resources/person.yaml
+        - create:
+            file: resources/opportunity.yaml
+        - assert:
+            file: assertions/opportunity.yaml
+
+    - name: multiple-opportunities-per-company
+      description: A second Opportunity with the same Company is accepted and both are listed.
+      try:
+        - create:
+            file: resources/second-opportunity.yaml
+        - script:
+            content: kubectl get opportunities -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'opportunity.crm.miloapis.com/initech-initial-sale')): true
+              (contains($stdout, 'opportunity.crm.miloapis.com/initech-expansion')): true
+
+    - name: describe-move-stage-and-add-people
+      description: Staff can describe the sale, move the stage, and add the People involved.
+      try:
+        - patch:
+            file: resources/patch-stage-and-people.yaml
+        - assert:
+            file: assertions/opportunity-proposal.yaml
+
+    - name: reject-unknown-stage-on-update
+      description: Moving to a stage outside the agreed list is rejected and leaves the Opportunity unchanged.
+      try:
+        - patch:
+            file: resources/patch-invalid-stage.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.stage')): true
+                  (contains($error, 'Unsupported value')): true
+        - assert:
+            file: assertions/opportunity-proposal.yaml
+
+    - name: reject-invalid-opportunities
+      description: Missing and malformed fields are rejected on create.
+      try:
+        - create:
+            file: resources/opportunity-missing-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.displayName: Required value'))": true
+        - create:
+            file: resources/opportunity-blank-display-name.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.displayName')): true
+                  (contains($error, 'must not be blank')): true
+        - create:
+            file: resources/opportunity-long-description.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.description')): true
+                  (contains($error, 'Too long')): true
+        - create:
+            file: resources/opportunity-missing-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.companyRef: Required value'))": true
+        - create:
+            file: resources/opportunity-missing-owner.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.ownerRef: Required value'))": true
+        - create:
+            file: resources/opportunity-invalid-owner.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.ownerRef.name')): true
+                  (contains($error, 'must be a valid User name')): true
+        - create:
+            file: resources/opportunity-invalid-stage.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.stage')): true
+                  (contains($error, 'Unsupported value')): true
+        - create:
+            file: resources/opportunity-invalid-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRefs[0].name')): true
+                  (contains($error, 'must be a valid Person name')): true
+        - create:
+            file: resources/opportunity-duplicate-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'Duplicate value')): true
+
+    - name: delete
+      description: Deleting an Opportunity removes it.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: Opportunity
+              name: initech-initial-sale
+        - error:
+            file: assertions/opportunity-exists.yaml
