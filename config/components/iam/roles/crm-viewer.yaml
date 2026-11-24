@@ -22,3 +22,7 @@ spec:
     - crm.miloapis.com/organizationonboardings.get
     - crm.miloapis.com/organizationonboardings/status.get
     - crm.miloapis.com/organizationonboardings.watch
+    - crm.miloapis.com/onboardinginvitations.list
+    - crm.miloapis.com/onboardinginvitations.get
+    - crm.miloapis.com/onboardinginvitations/status.get
+    - crm.miloapis.com/onboardinginvitations.watch

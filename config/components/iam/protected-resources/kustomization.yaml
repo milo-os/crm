@@ -4,3 +4,4 @@ resources:
   - person.yaml
   - opportunity.yaml
   - organizationonboarding.yaml
+  - onboardinginvitation.yaml
