@@ -3,3 +3,4 @@ resources:
   - company.yaml
   - person.yaml
   - opportunity.yaml
+  - organizationonboarding.yaml
