@@ -1,0 +1,190 @@
+# OrganizationOnboarding (crm.miloapis.com): creates, updates, deletes, and the
+# requests that must not produce activity.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  crm.miloapis.com:
+    organizationonboardings: OrganizationOnboarding
+
+tests:
+  - name: create links the new onboarding by its name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+      requestURI: /apis/crm.miloapis.com/v1alpha1/organizationonboardings
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: acme-onboarding
+        spec:
+          companyRef:
+            name: acme
+          opportunityRef:
+            name: acme-initial-sale
+          organizationDetails:
+            contactInfo:
+              email: jane@acme.example
+          billing:
+            currency: USD
+            paymentArrangement: Card
+    exp_policy: crm.miloapis.com-organizationonboarding
+    exp_rule: create
+    exp_summary: alice@example.com started onboarding acme-onboarding
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: acme-onboarding
+        apiGroup: crm.miloapis.com
+        kind: OrganizationOnboarding
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com started an onboarding
+
+  - name: patch of the draft is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+        name: acme-onboarding
+      responseStatus:
+        code: 200
+      requestObject:
+        spec:
+          billing:
+            paymentArrangement: Invoice
+    exp_rule: update
+    exp_summary: alice@example.com updated onboarding acme-onboarding
+    exp_links:
+      - marker: acme-onboarding
+        apiGroup: crm.miloapis.com
+        kind: OrganizationOnboarding
+        name: acme-onboarding
+
+  - name: full update is an update
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+        name: acme-onboarding
+      responseStatus:
+        code: 200
+    exp_rule: update
+    exp_summary: alice@example.com updated onboarding acme-onboarding
+
+  - name: delete names the removed onboarding
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+        name: acme-onboarding
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted onboarding acme-onboarding
+
+  - name: rejected create produces no activity
+    policy: crm.miloapis.com-organizationonboarding
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: system writes produce no activity
+    policy: crm.miloapis.com-organizationonboarding
+    audit:
+      verb: update
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+        name: acme-onboarding
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: crm.miloapis.com-organizationonboarding
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+        name: acme-onboarding
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: crm.miloapis.com-organizationonboarding
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+      requestURI: /apis/crm.miloapis.com/v1alpha1/organizationonboardings?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: crm.miloapis.com-organizationonboarding
+    audit:
+      verb: list
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: organizationonboardings
+      responseStatus:
+        code: 200
+    exp_no_match: true
