@@ -48,3 +48,40 @@ type UserReference struct {
 	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid User name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
 	Name string `json:"name"`
 }
+
+// OpportunityReference names an Opportunity. CRM resources are
+// cluster-scoped, so the name alone identifies it.
+type OpportunityReference struct {
+	// Name is the Opportunity's name.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid Opportunity name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
+	Name string `json:"name"`
+}
+
+// OnboardingInvitationReference names an OnboardingInvitation. CRM resources
+// are cluster-scoped, so the name alone identifies it.
+type OnboardingInvitationReference struct {
+	// Name is the OnboardingInvitation's name.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid OnboardingInvitation name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
+	Name string `json:"name"`
+}
+
+// BillingAccountReference names a BillingAccount (billing.miloapis.com). A
+// BillingAccount lives in its organization's namespace, so it is found
+// together with an organization reference.
+type BillingAccountReference struct {
+	// Name is the BillingAccount's name.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid BillingAccount name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
+	Name string `json:"name"`
+}

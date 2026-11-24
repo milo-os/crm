@@ -1,0 +1,37 @@
+# An onboarding draft staff prepared for Acme from the acme-initial-sale
+# Opportunity, billed by invoice in USD. paymentArrangement defaults to Card.
+# The customer completes the remaining details after the invitation is sent;
+# CRM writes progress to status.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: acme-onboarding
+spec:
+  companyRef:
+    name: acme
+  opportunityRef:
+    name: acme-initial-sale
+  organizationDetails:
+    displayName: Acme
+    contactInfo:
+      name: Jane Smith
+      email: jane@acme.example
+      businessName: Acme Inc.
+  billing:
+    currency: USD
+    paymentArrangement: Invoice
+    contactInfo:
+      name: Jane Smith
+      email: billing@acme.example
+      businessName: Acme Inc.
+      address:
+        country: US
+        line1: 1 Main Street
+        city: Springfield
+        region: IL
+        postalCode: "62701"
+    taxIds:
+      - type: us_ein
+        value: "12-3456789"
+    invoice:
+      purchaseOrderNumber: PO-1001
