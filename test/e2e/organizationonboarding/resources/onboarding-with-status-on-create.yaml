@@ -1,0 +1,15 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: status-on-create
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: hooli-initial-sale
+  billing:
+    currency: USD
+status:
+  phase: Complete
+  organizationRef:
+    name: hooli

@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: invalid-company
+spec:
+  companyRef:
+    name: Not_A_Company
+  opportunityRef:
+    name: hooli-initial-sale
+  billing:
+    currency: USD

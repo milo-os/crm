@@ -1,0 +1,14 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: invalid-accounts-payable-email
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: hooli-initial-sale
+  billing:
+    currency: USD
+    paymentArrangement: Invoice
+    invoice:
+      accountsPayableEmail: not-an-email

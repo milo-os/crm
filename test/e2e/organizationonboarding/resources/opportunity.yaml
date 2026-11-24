@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: hooli-initial-sale
+spec:
+  displayName: Hooli initial sale
+  companyRef:
+    name: hooli
+  ownerRef:
+    name: "340583683847097153"

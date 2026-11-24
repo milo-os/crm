@@ -1,0 +1,33 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: hooli-onboarding
+spec:
+  organizationDetails:
+    displayName: Hooli
+    contactInfo:
+      name: Gavin Belson
+      email: gavin@hooli.example
+      businessName: Hooli Inc.
+      address:
+        city: Palo Alto
+  billing:
+    currency: USD
+    paymentArrangement: Invoice
+    contactInfo:
+      email: billing@hooli.example
+      invoiceEmails:
+        - invoices@hooli.example
+      address:
+        country: US
+        line1: 1 Hooli Way
+        city: Palo Alto
+        region: CA
+        postalCode: "94301"
+    taxIds:
+      - type: us_ein
+        value: "12-3456789"
+    invoice:
+      purchaseOrderNumber: PO-1001
+      agreementReference: MSA-2026-001
+      accountsPayableEmail: ap@hooli.example

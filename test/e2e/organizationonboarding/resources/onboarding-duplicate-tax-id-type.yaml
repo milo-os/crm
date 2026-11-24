@@ -1,0 +1,16 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: duplicate-tax-id-type
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: hooli-initial-sale
+  billing:
+    currency: USD
+    taxIds:
+      - type: gb_vat
+        value: GB123456789
+      - type: gb_vat
+        value: GB987654321

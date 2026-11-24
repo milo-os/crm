@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: status-on-create
+status:
+  phase: Invited
+  currentInvitationRef:
+    name: gavin-belson
