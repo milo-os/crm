@@ -144,9 +144,9 @@ spec:
               Only CRM writes it; staff roles can read it but not change it, so clients
               can't set the inviter or claim a redemption.
 
-              The invitation holds no link, credential, or anything that could be used
-              as one. CRM keeps only a verifier for the link, in restricted storage
-              outside this resource.
+              The invitation holds no link, credential, or anything else that grants
+              access to the onboarding. Access comes from IAM, which CRM grants to the
+              recipient.
 
               agreement version, the redeeming User, and when. It belongs to this
               recipient, so a replacement starts without it.
@@ -215,9 +215,9 @@ spec:
                 x-kubernetes-list-type: map
               expiresAt:
                 description: |-
-                  ExpiresAt is when the invitation link stops working, seven days after
-                  it was sent. An expired invitation doesn't erase the onboarding's
-                  progress.
+                  ExpiresAt is when the invitation stops working if it hasn't been
+                  redeemed, seven days after it was sent. A redeemed invitation doesn't
+                  expire, and an expired one doesn't erase the onboarding's progress.
 
                   new invitation is decided with the action API (#12).
                 format: date-time
@@ -249,7 +249,8 @@ spec:
                   Phase is where the invitation is in its lifecycle. The conditions give
                   the details, such as why it was revoked.
 
-                  actions, and by the invitation controller on delivery and expiry.
+                  redeemed, expired, or revoked. Whether actions or the invitation
+                  controller write each phase is decided with the action API (#12).
                 enum:
                 - Pending
                 - Sent

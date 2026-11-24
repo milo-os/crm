@@ -19,8 +19,9 @@ const (
 	// InvitationPhaseSent is an invitation delivered to the recipient and not
 	// yet redeemed.
 	InvitationPhaseSent InvitationPhase = "Sent"
-	// InvitationPhaseRedeemed is an invitation the recipient redeemed. They
-	// can work on the onboarding while it is the current invitation.
+	// InvitationPhaseRedeemed is an invitation whose recipient started the
+	// onboarding; CRM recorded them in redeemedUserRef. It no longer expires,
+	// and they can work on the onboarding while it is the current invitation.
 	InvitationPhaseRedeemed InvitationPhase = "Redeemed"
 	// InvitationPhaseExpired is an invitation whose link expired before it
 	// was redeemed. The onboarding keeps its progress.
@@ -71,9 +72,9 @@ type OnboardingInvitationSpec struct {
 // Only CRM writes it; staff roles can read it but not change it, so clients
 // can't set the inviter or claim a redemption.
 //
-// The invitation holds no link, credential, or anything that could be used
-// as one. CRM keeps only a verifier for the link, in restricted storage
-// outside this resource.
+// The invitation holds no link, credential, or anything else that grants
+// access to the onboarding. Access comes from IAM, which CRM grants to the
+// recipient.
 //
 // TODO(#14): record agreement acceptance here or on the onboarding: which
 // agreement version, the redeeming User, and when. It belongs to this
@@ -82,8 +83,9 @@ type OnboardingInvitationStatus struct {
 	// Phase is where the invitation is in its lifecycle. The conditions give
 	// the details, such as why it was revoked.
 	//
-	// TODO(#13, #14): set by the send, resend, replace, cancel, and redeem
-	// actions, and by the invitation controller on delivery and expiry.
+	// TODO(#12, #13, #14): set by CRM when the invitation is sent, delivered,
+	// redeemed, expired, or revoked. Whether actions or the invitation
+	// controller write each phase is decided with the action API (#12).
 	//
 	// +optional
 	Phase InvitationPhase `json:"phase,omitempty"`
@@ -103,9 +105,9 @@ type OnboardingInvitationStatus struct {
 	// +optional
 	SentTime *metav1.Time `json:"sentTime,omitempty"`
 
-	// ExpiresAt is when the invitation link stops working, seven days after
-	// it was sent. An expired invitation doesn't erase the onboarding's
-	// progress.
+	// ExpiresAt is when the invitation stops working if it hasn't been
+	// redeemed, seven days after it was sent. A redeemed invitation doesn't
+	// expire, and an expired one doesn't erase the onboarding's progress.
 	//
 	// TODO(#13): set by the send action. Whether a resend moves it or issues a
 	// new invitation is decided with the action API (#12).
@@ -119,14 +121,14 @@ type OnboardingInvitationStatus struct {
 	// onboarding, and on completion this User becomes the organization's
 	// first administrator.
 	//
-	// TODO(#14): set by the redeem action.
+	// TODO(#12, #14): set by CRM when the recipient starts the onboarding.
 	//
 	// +optional
 	RedeemedUserRef *UserReference `json:"redeemedUserRef,omitempty"`
 
 	// RedeemedTime is when the invitation was redeemed.
 	//
-	// TODO(#14): set by the redeem action.
+	// TODO(#12, #14): set by CRM when the recipient starts the onboarding.
 	//
 	// +optional
 	RedeemedTime *metav1.Time `json:"redeemedTime,omitempty"`
