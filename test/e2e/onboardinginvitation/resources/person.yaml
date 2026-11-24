@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: richard-hendricks
+spec:
+  givenName: Richard
+  familyName: Hendricks
+  email: richard@piedpiper.example
+  companyRef:
+    name: pied-piper

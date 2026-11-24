@@ -1,0 +1,9 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: missing-recipient-email
+spec:
+  onboardingRef:
+    name: pied-piper-onboarding
+  personRef:
+    name: richard-hendricks

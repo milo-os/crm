@@ -1,0 +1,163 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: onboardinginvitation
+spec:
+  description: |
+    Tests the OnboardingInvitation resource definition against a real API server:
+    - An invitation can be created, read, and deleted.
+    - The onboarding, Person, and recipient email can't be changed.
+    - The phase, expiry, inviter, and redemption are status: clients can't set
+      them with the spec, and CRM's status writes are validated.
+    - Invalid invitations are rejected with clear messages.
+
+  steps:
+    - name: create
+      description: An invitation for a Person to an onboarding is accepted.
+      try:
+        - create:
+            file: resources/company.yaml
+        - create:
+            file: resources/person.yaml
+        - create:
+            file: resources/opportunity.yaml
+        - create:
+            file: resources/onboarding.yaml
+        - create:
+            file: resources/invitation.yaml
+        - assert:
+            file: assertions/invitation.yaml
+
+    - name: list-by-onboarding-and-person
+      description: Invitations can be listed by onboarding and by Person with a field selector.
+      try:
+        - script:
+            content: kubectl get onboardinginvitations --field-selector spec.onboardingRef.name=pied-piper-onboarding -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'onboardinginvitation.crm.miloapis.com/pied-piper-richard')): true
+        - script:
+            content: kubectl get onboardinginvitations --field-selector spec.personRef.name=richard-hendricks -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'onboardinginvitation.crm.miloapis.com/pied-piper-richard')): true
+        - script:
+            content: kubectl get onboardinginvitations --field-selector spec.onboardingRef.name=other-onboarding -o name
+            check:
+              ($error == null): true
+              (contains($stdout, 'pied-piper-richard')): false
+
+    - name: captured-fields-are-immutable
+      description: The onboarding, Person, and recipient email can't be changed, and the invitation is left unchanged.
+      try:
+        - patch:
+            file: resources/patch-onboarding.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.onboardingRef')): true
+                  (contains($error, 'be changed')): true
+        - patch:
+            file: resources/patch-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRef')): true
+                  (contains($error, 'be changed')): true
+        - patch:
+            file: resources/patch-recipient-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.recipientEmail')): true
+                  (contains($error, 'be changed')): true
+        - assert:
+            file: assertions/invitation.yaml
+
+    - name: inviter-and-redemption-are-status
+      description: |
+        Status sent with the spec on create is dropped, so clients can't set
+        the inviter or claim a redemption. Status written through the status
+        subresource, as CRM does, is validated.
+      try:
+        - create:
+            file: resources/invitation-with-status-on-create.yaml
+        - assert:
+            file: assertions/invitation-without-status.yaml
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"redeemedUserRef":{"name":"Not_A_User"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'must be a valid User name')): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Accepted"}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'Unsupported value')): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Redeemed","expiresAt":"2026-12-01T00:00:00Z","inviterRef":{"name":"340583683847097153"},"redeemedUserRef":{"name":"340583683847097154"}}}'
+            check:
+              ($error == null): true
+        - assert:
+            file: assertions/invitation-redeemed.yaml
+
+    - name: reject-invalid-invitations
+      description: Missing and malformed fields are rejected on create.
+      try:
+        - create:
+            file: resources/invitation-missing-onboarding.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.onboardingRef: Required value'))": true
+        - create:
+            file: resources/invitation-invalid-onboarding.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.onboardingRef.name')): true
+                  (contains($error, 'must be a valid OrganizationOnboarding name')): true
+        - create:
+            file: resources/invitation-missing-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.personRef: Required value'))": true
+        - create:
+            file: resources/invitation-invalid-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRef.name')): true
+                  (contains($error, 'must be a valid Person name')): true
+        - create:
+            file: resources/invitation-missing-recipient-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  "(contains($error, 'spec.recipientEmail: Required value'))": true
+        - create:
+            file: resources/invitation-invalid-recipient-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.recipientEmail')): true
+                  (contains($error, 'must be an email address')): true
+
+    - name: delete
+      description: Deleting an invitation removes it.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: OnboardingInvitation
+              name: pied-piper-richard
+        - error:
+            file: assertions/invitation-exists.yaml
