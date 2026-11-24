@@ -1,0 +1,15 @@
+# Jane's invitation to complete the acme-onboarding. CRM creates invitations
+# when staff send an onboarding; staff can view them but not create or change
+# them. The spec is who it's for; CRM records everything it does with the
+# invitation in status: phase, inviter, expiry, and redemption. The invitation
+# never holds the link or anything that could be used as one.
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: acme-jane
+spec:
+  onboardingRef:
+    name: acme-onboarding
+  personRef:
+    name: jane-smith
+  recipientEmail: jane@acme.example
