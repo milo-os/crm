@@ -75,7 +75,8 @@ spec:
               client sets it, and none of it can change afterwards. Everything CRM does
               with the invitation is in status.
 
-              whose Company isn't the onboarding's Company.
+              The onboarding and Person must exist, and the Person must work for the
+              onboarding's Company.
             properties:
               onboardingRef:
                 description: |-
@@ -223,9 +224,12 @@ spec:
                 format: date-time
                 type: string
               inviterRef:
-                description: |
+                description: |-
                   InviterRef is the staff User who sent the invitation, taken from the
-                  authenticated request, never from the request body.
+                  authenticated request, never from the request body. The User must
+                  exist. Once set, it can't be changed or removed.
+
+                  requester on it, and the controller copies that into this field.
                 properties:
                   name:
                     description: Name is the User's name.
@@ -269,7 +273,8 @@ spec:
                   signed-in User whose verified email matched recipientEmail. While this
                   is the onboarding's current invitation, only this User can work on the
                   onboarding, and on completion this User becomes the organization's
-                  first administrator.
+                  first administrator. The User must exist, have recipientEmail as their
+                  email, and have verified it. Once set, it can't be changed or removed.
                 properties:
                   name:
                     description: Name is the User's name.
@@ -289,6 +294,13 @@ spec:
                 format: date-time
                 type: string
             type: object
+            x-kubernetes-validations:
+            - message: inviterRef can't be changed or removed once set
+              rule: '!has(oldSelf.inviterRef) || (has(self.inviterRef) && self.inviterRef
+                == oldSelf.inviterRef)'
+            - message: redeemedUserRef can't be changed or removed once set
+              rule: '!has(oldSelf.redeemedUserRef) || (has(self.redeemedUserRef) &&
+                self.redeemedUserRef == oldSelf.redeemedUserRef)'
         required:
         - spec
         type: object

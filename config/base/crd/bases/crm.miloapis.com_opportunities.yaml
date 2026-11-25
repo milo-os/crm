@@ -71,8 +71,10 @@ spec:
             properties:
               companyRef:
                 description: |-
-                  CompanyRef is the Company the sale is with. A Company can have many
-                  Opportunities.
+                  CompanyRef is the Company the sale is with. It must exist. A Company
+                  can have many Opportunities. It can't be changed: a sale to another
+                  Company is a new Opportunity, so the onboardings that name this one
+                  stay with its Company.
                 properties:
                   name:
                     description: Name is the Company's name.
@@ -86,6 +88,10 @@ spec:
                 required:
                 - name
                 type: object
+                x-kubernetes-validations:
+                - message: companyRef can't be changed; a sale to another Company
+                    is a new Opportunity
+                  rule: self == oldSelf
               description:
                 description: |-
                   Description is a short summary of what the sale is about, such as what
@@ -104,8 +110,9 @@ spec:
                   rule: '!self.matches(''^[[:space:]]*$'')'
               ownerRef:
                 description: |-
-                  OwnerRef is the staff Milo User who owns the sale. The owner is notified
-                  when onboarding started from this Opportunity completes.
+                  OwnerRef is the staff Milo User who owns the sale. The User must exist.
+                  The owner is notified when onboarding started from this Opportunity
+                  completes.
                 properties:
                   name:
                     description: Name is the User's name.
@@ -120,7 +127,9 @@ spec:
                 - name
                 type: object
               personRefs:
-                description: PersonRefs are the People involved in the sale.
+                description: |-
+                  PersonRefs are the People involved in the sale. Each must exist and
+                  work for the Opportunity's Company.
                 items:
                   description: |-
                     PersonReference names a Person. CRM resources are cluster-scoped, so the

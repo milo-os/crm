@@ -35,7 +35,7 @@ Staff with permission to manage onboarding can:
 - See progress, resend invitations, and cancel or replace them.
 - Cancel an entire unfinished onboarding, for example if the deal falls through.
 
-For the first version, one permission covers these actions. Staff prepare details before sending; after the invitation is sent, the customer makes any corrections.
+For the first version, one permission covers these actions. Staff prepare details before sending. After the invitation is sent, the customer and staff can still correct the details, but not the billing currency or arrangement, which stay as agreed.
 
 ## Choose the billing arrangement
 

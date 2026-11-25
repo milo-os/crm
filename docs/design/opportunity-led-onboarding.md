@@ -120,7 +120,7 @@ Use a thin Milo-authenticated server-side action API for send, resend, replace, 
 | Cancel invitation | Revoke access while retaining saved onboarding for a later replacement |
 | Cancel onboarding | End an unfinished onboarding (for example, when a deal falls through): revoke every outstanding invitation and recipient access, and move the onboarding to Cancelled; no further invitations can be issued for it |
 | Redeem | Require a valid invitation and authenticated, verified matching email; establish access to this onboarding only |
-| Save details | Allow only the current recipient to update permitted draft fields using concurrency checks |
+| Save details | Let staff and the current recipient, through the access IAM grants them, update the details using concurrency checks; the Company, Opportunity, and, once sent, the billing currency and arrangement can't change; nothing changes once the onboarding is submitted or cancelled |
 | Submit | Validate requirements, freeze submitted details and recipient, and begin idempotent completion |
 
 Repeated action requests need stable request identifiers so retries do not send unintended duplicate emails or create duplicate invitations. A user-requested resend is a distinct delivery action.
@@ -166,7 +166,7 @@ CRM's controllers create resources in other services: the Organization, the Bill
 
 ## Invoice and card billing
 
-Authorized staff select `Card` or `Invoice` before sending. Use Card as the default. The one staff onboarding permission includes this choice for the first version. Customers can correct billing contact details but cannot change the currency or arrangement. The service records who authorized invoicing and when; neither a forged field nor a customer-created BillingAccount may grant invoice eligibility.
+Authorized staff select `Card` or `Invoice` before sending. Use Card as the default. The one staff onboarding permission includes this choice for the first version. Once the onboarding is sent, nobody can change the currency or arrangement; staff and customers can still correct the billing contact details. The service records who authorized invoicing and when; neither a forged field nor a customer-created BillingAccount may grant invoice eligibility.
 
 CRM reconciles the customer's BillingAccount and, for Invoice, an existing `billing.miloapis.com/v1alpha1` `BillingArrangement` with `spec.type: Invoice`. Leave `applicationRef` unset: Billing explicitly supports this sales-led grant without a customer application or another review. Use a stable arrangement identity tied to onboarding so retries do not create overlapping arrangements.
 

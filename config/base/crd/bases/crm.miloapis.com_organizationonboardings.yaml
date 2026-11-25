@@ -69,9 +69,11 @@ spec:
               OrganizationOnboardingSpec is what staff prepare, and the customer later
               completes, to set up one organization.
 
-              Staff-prepared details, the currency, and the payment arrangement are frozen
-              at send; after that only CRM writes the spec, saving the customer's
-              corrections.
+              IAM decides who can change it: staff, and once invited, the customer. The
+              Company and Opportunity never change; once the onboarding is sent, the
+              currency and payment arrangement can't change either; and once it is
+              submitted or cancelled, nothing in the spec can, so CRM sets up exactly
+              what was submitted.
             properties:
               billing:
                 description: Billing is how the organization will be billed.
@@ -152,9 +154,9 @@ spec:
                     type: object
                   currency:
                     description: |-
-                      Currency is the billing account's currency. Staff choose it and the
-                      customer can't change it. Billing only bills in USD today; more
-                      currencies are added here when Billing supports them.
+                      Currency is the billing account's currency. Staff choose it, and it
+                      can't be changed once the onboarding is sent. Billing only bills in USD
+                      today; more currencies are added here when Billing supports them.
                     enum:
                     - USD
                     type: string
@@ -192,7 +194,8 @@ spec:
                     default: Card
                     description: |-
                       PaymentArrangement is how the customer will pay: Card or Invoice. Staff
-                      choose it and the customer can't change it. Defaults to Card.
+                      choose it, and it can't be changed once the onboarding is sent.
+                      Defaults to Card.
                     enum:
                     - Card
                     - Invoice
@@ -241,8 +244,9 @@ spec:
                     is Invoice
                   rule: '!has(self.invoice) || self.paymentArrangement == ''Invoice'''
               companyRef:
-                description: |
+                description: |-
                   CompanyRef is the Company the organization is for. It can't be changed.
+                  The Company must exist.
                 properties:
                   name:
                     description: Name is the Company's name.
@@ -264,8 +268,7 @@ spec:
                   OpportunityRef is the Opportunity the onboarding started from. It can't
                   be changed. An Opportunity can have more than one onboarding, each
                   setting up its own organization.
-
-                  is not this onboarding's Company.
+                  The Opportunity must exist and be with this onboarding's Company.
                 properties:
                   name:
                     description: Name is the Opportunity's name.
@@ -368,11 +371,16 @@ spec:
               reusable organization details, so a replacement recipient starts without
               it; it likely lives on the OnboardingInvitation (#10). The agreements and
               their versions are identified in #14.
+
+              The links to what the onboarding created can't be changed or removed once
+              set; currentInvitationRef can, since a resend or replacement moves it.
             properties:
               billingAccountRef:
                 description: |
                   BillingAccountRef is the BillingAccount this onboarding created, in the
-                  organization's namespace. Deleting the onboarding never deletes it.
+                  organization's namespace. Deleting the onboarding never deletes it. It
+                  must exist in the namespace of organizationRef, which must be set.
+                  Once set, it can't be changed or removed.
                 properties:
                   name:
                     description: Name is the BillingAccount's name.
@@ -461,7 +469,8 @@ spec:
                 description: |
                   CurrentInvitationRef is the onboarding's one current invitation. Only
                   this invitation can be redeemed or used; a resend or replacement moves
-                  it, so older links stop working.
+                  it, so older links stop working. The invitation must exist and be for
+                  this onboarding.
                 properties:
                   name:
                     description: Name is the OnboardingInvitation's name.
@@ -490,6 +499,7 @@ spec:
                     type: string
                   userRef:
                     description: UserRef is the staff User who authorized invoicing.
+                      The User must exist.
                     properties:
                       name:
                         description: Name is the User's name.
@@ -516,7 +526,8 @@ spec:
               organizationRef:
                 description: |
                   OrganizationRef is the organization this onboarding created. It stays
-                  linked after completion; deleting the onboarding never deletes it.
+                  linked after completion; deleting the onboarding never deletes it. The
+                  organization must exist. Once set, it can't be changed or removed.
                 properties:
                   name:
                     description: Name is the organization's name.
@@ -545,9 +556,32 @@ spec:
                 - Cancelled
                 type: string
             type: object
+            x-kubernetes-validations:
+            - message: organizationRef can't be changed or removed once set
+              rule: '!has(oldSelf.organizationRef) || (has(self.organizationRef) &&
+                self.organizationRef == oldSelf.organizationRef)'
+            - message: billingAccountRef can't be changed or removed once set
+              rule: '!has(oldSelf.billingAccountRef) || (has(self.billingAccountRef)
+                && self.billingAccountRef == oldSelf.billingAccountRef)'
         required:
         - spec
         type: object
+        x-kubernetes-validations:
+        - fieldPath: .spec.billing.currency
+          message: currency can't be changed once the onboarding is sent; start a
+            new onboarding
+          rule: '!has(oldSelf.status) || !has(oldSelf.status.phase) || oldSelf.status.phase
+            == ''Draft'' || self.spec.billing.currency == oldSelf.spec.billing.currency'
+        - fieldPath: .spec.billing.paymentArrangement
+          message: paymentArrangement can't be changed once the onboarding is sent;
+            start a new onboarding
+          rule: '!has(oldSelf.status) || !has(oldSelf.status.phase) || oldSelf.status.phase
+            == ''Draft'' || self.spec.billing.paymentArrangement == oldSelf.spec.billing.paymentArrangement'
+        - fieldPath: .spec
+          message: the onboarding was submitted or cancelled; its details can't be
+            changed
+          rule: '!has(oldSelf.status) || !has(oldSelf.status.phase) || !(oldSelf.status.phase
+            in [''Completing'', ''Complete'', ''Cancelled'']) || self.spec == oldSelf.spec'
     served: true
     storage: true
     subresources:

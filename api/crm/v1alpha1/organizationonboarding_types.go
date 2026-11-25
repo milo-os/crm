@@ -63,14 +63,14 @@ const (
 // OrganizationOnboardingSpec is what staff prepare, and the customer later
 // completes, to set up one organization.
 //
-// TODO(#11): once the onboarding is sent, reject staff changes to the spec.
-// Staff-prepared details, the currency, and the payment arrangement are frozen
-// at send; after that only CRM writes the spec, saving the customer's
-// corrections.
+// IAM decides who can change it: staff, and once invited, the customer. The
+// Company and Opportunity never change; once the onboarding is sent, the
+// currency and payment arrangement can't change either; and once it is
+// submitted or cancelled, nothing in the spec can, so CRM sets up exactly
+// what was submitted.
 type OrganizationOnboardingSpec struct {
 	// CompanyRef is the Company the organization is for. It can't be changed.
-	//
-	// TODO(#11): reject a Company that doesn't exist.
+	// The Company must exist.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="companyRef can't be changed"
@@ -79,9 +79,7 @@ type OrganizationOnboardingSpec struct {
 	// OpportunityRef is the Opportunity the onboarding started from. It can't
 	// be changed. An Opportunity can have more than one onboarding, each
 	// setting up its own organization.
-	//
-	// TODO(#11): reject an Opportunity that doesn't exist or whose companyRef
-	// is not this onboarding's Company.
+	// The Opportunity must exist and be with this onboarding's Company.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="opportunityRef can't be changed"
@@ -125,15 +123,16 @@ type OnboardingOrganizationDetails struct {
 //
 // +kubebuilder:validation:XValidation:rule="!has(self.invoice) || self.paymentArrangement == 'Invoice'",message="invoice details can only be set when paymentArrangement is Invoice"
 type OnboardingBilling struct {
-	// Currency is the billing account's currency. Staff choose it and the
-	// customer can't change it. Billing only bills in USD today; more
-	// currencies are added here when Billing supports them.
+	// Currency is the billing account's currency. Staff choose it, and it
+	// can't be changed once the onboarding is sent. Billing only bills in USD
+	// today; more currencies are added here when Billing supports them.
 	//
 	// +kubebuilder:validation:Required
 	Currency BillingCurrency `json:"currency"`
 
 	// PaymentArrangement is how the customer will pay: Card or Invoice. Staff
-	// choose it and the customer can't change it. Defaults to Card.
+	// choose it, and it can't be changed once the onboarding is sent.
+	// Defaults to Card.
 	//
 	// +optional
 	// +kubebuilder:default=Card
@@ -337,6 +336,12 @@ type PostalAddress struct {
 // reusable organization details, so a replacement recipient starts without
 // it; it likely lives on the OnboardingInvitation (#10). The agreements and
 // their versions are identified in #14.
+//
+// The links to what the onboarding created can't be changed or removed once
+// set; currentInvitationRef can, since a resend or replacement moves it.
+//
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.organizationRef) || (has(self.organizationRef) && self.organizationRef == oldSelf.organizationRef)",message="organizationRef can't be changed or removed once set"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.billingAccountRef) || (has(self.billingAccountRef) && self.billingAccountRef == oldSelf.billingAccountRef)",message="billingAccountRef can't be changed or removed once set"
 type OrganizationOnboardingStatus struct {
 	// Phase is where the onboarding is in its lifecycle. An onboarding with
 	// no phase yet is a draft.
@@ -349,7 +354,8 @@ type OrganizationOnboardingStatus struct {
 
 	// CurrentInvitationRef is the onboarding's one current invitation. Only
 	// this invitation can be redeemed or used; a resend or replacement moves
-	// it, so older links stop working.
+	// it, so older links stop working. The invitation must exist and be for
+	// this onboarding.
 	//
 	// TODO(#13): set by the send, resend, and replace actions.
 	//
@@ -367,7 +373,8 @@ type OrganizationOnboardingStatus struct {
 	InvoiceAuthorization *InvoiceAuthorization `json:"invoiceAuthorization,omitempty"`
 
 	// OrganizationRef is the organization this onboarding created. It stays
-	// linked after completion; deleting the onboarding never deletes it.
+	// linked after completion; deleting the onboarding never deletes it. The
+	// organization must exist. Once set, it can't be changed or removed.
 	//
 	// TODO(#15): set when CRM creates the organization.
 	//
@@ -375,7 +382,9 @@ type OrganizationOnboardingStatus struct {
 	OrganizationRef *OrganizationReference `json:"organizationRef,omitempty"`
 
 	// BillingAccountRef is the BillingAccount this onboarding created, in the
-	// organization's namespace. Deleting the onboarding never deletes it.
+	// organization's namespace. Deleting the onboarding never deletes it. It
+	// must exist in the namespace of organizationRef, which must be set.
+	// Once set, it can't be changed or removed.
 	//
 	// TODO(#15): set when CRM creates the billing account.
 	//
@@ -409,7 +418,7 @@ type OrganizationOnboardingStatus struct {
 
 // InvoiceAuthorization records who authorized Invoice billing and when.
 type InvoiceAuthorization struct {
-	// UserRef is the staff User who authorized invoicing.
+	// UserRef is the staff User who authorized invoicing. The User must exist.
 	//
 	// +kubebuilder:validation:Required
 	UserRef UserReference `json:"userRef"`
@@ -434,6 +443,9 @@ type InvoiceAuthorization struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Currency",type=string,JSONPath=`.spec.billing.currency`
 // +kubebuilder:printcolumn:name="Payment",type=string,JSONPath=`.spec.billing.paymentArrangement`
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || !has(oldSelf.status.phase) || oldSelf.status.phase == 'Draft' || self.spec.billing.currency == oldSelf.spec.billing.currency",message="currency can't be changed once the onboarding is sent; start a new onboarding",fieldPath=".spec.billing.currency"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || !has(oldSelf.status.phase) || oldSelf.status.phase == 'Draft' || self.spec.billing.paymentArrangement == oldSelf.spec.billing.paymentArrangement",message="paymentArrangement can't be changed once the onboarding is sent; start a new onboarding",fieldPath=".spec.billing.paymentArrangement"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.status) || !has(oldSelf.status.phase) || !(oldSelf.status.phase in ['Completing', 'Complete', 'Cancelled']) || self.spec == oldSelf.spec",message="the onboarding was submitted or cancelled; its details can't be changed",fieldPath=".spec"
 // +kubebuilder:printcolumn:name="Organization",type=string,JSONPath=`.status.organizationRef.name`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type OrganizationOnboarding struct {
