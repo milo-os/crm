@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: hoolixyz-sale
+  ownerReferences:
+    - apiVersion: crm.miloapis.com/v1alpha1
+      kind: Company
+      name: hooli-xyz

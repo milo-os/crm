@@ -53,7 +53,8 @@ type OpportunitySpec struct {
 	// CompanyRef is the Company the sale is with. It must exist. A Company
 	// can have many Opportunities. It can't be changed: a sale to another
 	// Company is a new Opportunity, so the onboardings that name this one
-	// stay with its Company.
+	// stay with its Company. The Company owns the Opportunity: deleting the
+	// Company deletes the Opportunity.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="companyRef can't be changed; a sale to another Company is a new Opportunity"

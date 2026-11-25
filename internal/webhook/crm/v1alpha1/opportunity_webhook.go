@@ -31,8 +31,7 @@ func (w *opportunityWebhook) ValidateUpdate(ctx context.Context, oldOpportunity,
 }
 
 // ValidateDelete isn't called: deleting an Opportunity is always allowed.
-// References are links, not ownership, so records that name it don't block the
-// delete.
+// Onboardings that name it keep the link; they are owned by the Company.
 func (w *opportunityWebhook) ValidateDelete(context.Context, *crmv1alpha1.Opportunity) (admission.Warnings, error) {
 	return nil, nil
 }

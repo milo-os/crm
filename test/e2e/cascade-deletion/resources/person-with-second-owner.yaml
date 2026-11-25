@@ -1,0 +1,14 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: hoolixyz-second-owner
+  ownerReferences:
+    - apiVersion: crm.miloapis.com/v1alpha1
+      kind: Opportunity
+      name: hoolixyz-sale
+      uid: 00000000-0000-0000-0000-000000000000
+spec:
+  givenName: Second
+  email: second@hoolixyz.example
+  companyRef:
+    name: hooli-xyz

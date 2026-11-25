@@ -29,9 +29,10 @@ func (w *companyWebhook) ValidateUpdate(ctx context.Context, oldCompany, newComp
 	return nil, invalid("Company", newCompany.Name, validation.ValidateCompanyUpdate(ctx, w.reader, oldCompany, newCompany))
 }
 
-// ValidateDelete isn't called: deleting a Company is always allowed.
-// References are links, not ownership, so records that name it don't block
-// the delete, and its organizations are never touched.
+// ValidateDelete isn't called: deleting a Company is always allowed. Milo's
+// garbage collector then deletes the People, Opportunities, and onboardings
+// it owns, and the onboardings' invitations. Its organizations are never
+// touched.
 func (w *companyWebhook) ValidateDelete(context.Context, *crmv1alpha1.Company) (admission.Warnings, error) {
 	return nil, nil
 }

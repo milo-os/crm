@@ -1,0 +1,6 @@
+apiVersion: iam.miloapis.com/v1alpha1
+kind: User
+metadata:
+  name: e2e-cascade-owner
+spec:
+  email: cascade-owner@datum.example

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // Package v1alpha1 holds the admission webhooks for crm.miloapis.com
-// resources. They only validate: every rule lives in internal/validation/crm,
-// and every webhook fails closed, so a request is refused when the webhook
-// can't be reached or a referenced record can't be read.
+// resources. They validate, with every rule in internal/validation/crm, and
+// make new records owned by the record they belong to (see owners.go). Every
+// webhook fails closed, so a request is refused when the webhook can't be
+// reached or a referenced record can't be read.
 package v1alpha1
 
 import (
@@ -26,6 +27,7 @@ import (
 // created a moment earlier is found.
 func SetupWebhooksWithManager(mgr ctrl.Manager) error {
 	reader := mgr.GetAPIReader()
+	registerOwnerDefaulters(mgr.GetWebhookServer(), reader, mgr.GetScheme())
 
 	if err := ctrl.NewWebhookManagedBy(mgr, &crmv1alpha1.Company{}).
 		WithValidator(&companyWebhook{reader: reader}).Complete(); err != nil {

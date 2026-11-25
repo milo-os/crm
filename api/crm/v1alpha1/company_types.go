@@ -26,8 +26,8 @@ type CompanySpec struct {
 
 	// OrganizationRefs links the Company to the Milo organizations created for
 	// it, normally one. Each organization must exist when it is linked. These
-	// are links, not ownership: deleting the Company never deletes an
-	// organization.
+	// are links, not ownership: deleting the Company deletes its People,
+	// Opportunities, and onboardings, but never an organization.
 	//
 	// +optional
 	// +listType=map

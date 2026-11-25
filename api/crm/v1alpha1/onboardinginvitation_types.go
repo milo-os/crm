@@ -42,7 +42,8 @@ const (
 type OnboardingInvitationSpec struct {
 	// OnboardingRef is the onboarding the invitation is for. It can't be
 	// changed. Resending or replacing an invitation continues the same
-	// onboarding.
+	// onboarding. The onboarding owns the invitation: deleting the onboarding
+	// deletes the invitation.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="onboardingRef can't be changed"

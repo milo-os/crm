@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: hoolixyz-onboarding
+spec:
+  companyRef:
+    name: hooli-xyz
+  opportunityRef:
+    name: hoolixyz-sale
+  billing:
+    currency: USD

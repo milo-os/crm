@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: hoolixyz-onboarding
+  ownerReferences:
+    - apiVersion: crm.miloapis.com/v1alpha1
+      kind: Company
+      name: hooli-xyz

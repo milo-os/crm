@@ -16,7 +16,8 @@ import (
 
 // ValidateOnboardingInvitationCreate rejects an invitation whose onboarding
 // or Person doesn't exist, whose Person doesn't work for the onboarding's
-// Company, or whose recipientEmail isn't the Person's email. The spec can't
+// Company, whose recipientEmail isn't the Person's email, or that is owned by
+// anything but its onboarding. The spec can't
 // be changed afterwards, so it is only checked here; the Person's email may
 // change later, and the invitation keeps the address it was sent to.
 func ValidateOnboardingInvitationCreate(ctx context.Context, c client.Reader, invitation *crmv1alpha1.OnboardingInvitation) field.ErrorList {
@@ -25,6 +26,7 @@ func ValidateOnboardingInvitationCreate(ctx context.Context, c client.Reader, in
 
 	onboarding, onboardingErrs := getOnboarding(ctx, c, spec.Child("onboardingRef"), invitation.Spec.OnboardingRef)
 	allErrs = append(allErrs, onboardingErrs...)
+	allErrs = append(allErrs, validateOwnedOnlyBy(invitation.OwnerReferences, "OrganizationOnboarding", invitation.Spec.OnboardingRef.Name)...)
 
 	path := spec.Child("personRef")
 	person, personErrs := getPerson(ctx, c, path, invitation.Spec.PersonRef)
@@ -41,12 +43,12 @@ func ValidateOnboardingInvitationCreate(ctx context.Context, c client.Reader, in
 	return allErrs
 }
 
-// ValidateOnboardingInvitationUpdate checks the Users CRM records in status
-// when they change. The inviter must exist. The User who redeemed the
+// ValidateOnboardingInvitationUpdate rejects changing the owner references,
+// and checks the Users CRM records in status when they change. The inviter must exist. The User who redeemed the
 // invitation must exist, have recipientEmail as their email, and have
 // verified it: only they may redeem it.
 func ValidateOnboardingInvitationUpdate(ctx context.Context, c client.Reader, oldInvitation, newInvitation *crmv1alpha1.OnboardingInvitation) field.ErrorList {
-	var allErrs field.ErrorList
+	allErrs := validateOwnersUnchanged(oldInvitation.OwnerReferences, newInvitation.OwnerReferences)
 	status := field.NewPath("status")
 
 	if ref := newInvitation.Status.InviterRef; ref != nil && !sameUser(ref, oldInvitation.Status.InviterRef) {

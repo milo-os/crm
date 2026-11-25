@@ -30,8 +30,9 @@ func (w *personWebhook) ValidateUpdate(ctx context.Context, oldPerson, newPerson
 	return nil, invalid("Person", newPerson.Name, validation.ValidatePersonUpdate(ctx, w.reader, oldPerson, newPerson))
 }
 
-// ValidateDelete isn't called: deleting a Person is always allowed. References
-// are links, not ownership, so records that name it don't block the delete.
+// ValidateDelete isn't called: deleting a Person is always allowed.
+// Opportunities that name them keep the link. Their invitations are owned by
+// their onboardings, so CRM's controller deletes them (TODO(#13)).
 func (w *personWebhook) ValidateDelete(context.Context, *crmv1alpha1.Person) (admission.Warnings, error) {
 	return nil, nil
 }

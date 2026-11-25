@@ -246,7 +246,8 @@ spec:
               companyRef:
                 description: |-
                   CompanyRef is the Company the organization is for. It can't be changed.
-                  The Company must exist.
+                  The Company must exist. The Company owns the onboarding: deleting the
+                  Company deletes the onboarding, but never the organization it created.
                 properties:
                   name:
                     description: Name is the Company's name.

@@ -32,8 +32,8 @@ func (w *organizationOnboardingWebhook) ValidateUpdate(ctx context.Context, oldO
 }
 
 // ValidateDelete isn't called: deleting an onboarding is always allowed.
-// References are links, not ownership, so records that name it don't block the
-// delete.
+// Milo's garbage collector then deletes its invitations. The organization and
+// billing account it created are never touched.
 func (w *organizationOnboardingWebhook) ValidateDelete(context.Context, *crmv1alpha1.OrganizationOnboarding) (admission.Warnings, error) {
 	return nil, nil
 }

@@ -36,6 +36,7 @@ type PersonSpec struct {
 	// Company can have many People. It can't be changed: someone who moves to
 	// another Company is a new Person there, so the Opportunities and
 	// invitations that name them keep pointing at someone from their Company.
+	// The Company owns the Person: deleting the Company deletes the Person.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="companyRef can't be changed; someone who moves to another Company is a new Person"

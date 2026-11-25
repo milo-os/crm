@@ -14,8 +14,8 @@ import (
 )
 
 // ValidateOrganizationOnboardingCreate rejects an onboarding whose Company
-// or Opportunity doesn't exist, or whose Opportunity is with another
-// Company. Both references can't be changed afterwards, so they are only
+// or Opportunity doesn't exist, whose Opportunity is with another Company,
+// or that is owned by anything but its Company. Both references can't be changed afterwards, so they are only
 // checked here.
 func ValidateOrganizationOnboardingCreate(ctx context.Context, c client.Reader, onboarding *crmv1alpha1.OrganizationOnboarding) field.ErrorList {
 	var allErrs field.ErrorList
@@ -24,6 +24,7 @@ func ValidateOrganizationOnboardingCreate(ctx context.Context, c client.Reader, 
 
 	_, errs := getCompany(ctx, c, spec.Child("companyRef"), onboarding.Spec.CompanyRef)
 	allErrs = append(allErrs, errs...)
+	allErrs = append(allErrs, validateOwnedOnlyBy(onboarding.OwnerReferences, "Company", company)...)
 
 	path := spec.Child("opportunityRef")
 	opportunity, errs := getOpportunity(ctx, c, path, onboarding.Spec.OpportunityRef)
@@ -37,12 +38,13 @@ func ValidateOrganizationOnboardingCreate(ctx context.Context, c client.Reader, 
 	return allErrs
 }
 
-// ValidateOrganizationOnboardingUpdate checks the references CRM records in
-// status. Who can change the details is up to
+// ValidateOrganizationOnboardingUpdate keeps the owner references and checks
+// the references CRM records in status. Who can change the details is up to
 // IAM; the schema keeps the Company, the Opportunity, and, once the
 // onboarding is sent, its currency and payment arrangement.
 func ValidateOrganizationOnboardingUpdate(ctx context.Context, c client.Reader, oldOnboarding, newOnboarding *crmv1alpha1.OrganizationOnboarding) field.ErrorList {
-	return validateOnboardingStatus(ctx, c, &oldOnboarding.Status, newOnboarding)
+	allErrs := validateOwnersUnchanged(oldOnboarding.OwnerReferences, newOnboarding.OwnerReferences)
+	return append(allErrs, validateOnboardingStatus(ctx, c, &oldOnboarding.Status, newOnboarding)...)
 }
 
 // validateOnboardingStatus checks the status references that changed: the

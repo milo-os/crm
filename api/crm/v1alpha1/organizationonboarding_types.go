@@ -70,7 +70,8 @@ const (
 // what was submitted.
 type OrganizationOnboardingSpec struct {
 	// CompanyRef is the Company the organization is for. It can't be changed.
-	// The Company must exist.
+	// The Company must exist. The Company owns the onboarding: deleting the
+	// Company deletes the onboarding, but never the organization it created.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="companyRef can't be changed"

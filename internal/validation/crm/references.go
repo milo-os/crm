@@ -7,8 +7,10 @@
 //
 // References are checked when they are set or changed, not on every update,
 // so deleting a record later never blocks unrelated edits to the records
-// that name it. References are links, not ownership: nothing here deletes or
-// changes the records they point to.
+// that name it. Nothing here deletes or changes the records references point
+// to. Deleting is left to Milo's garbage collector: CRM's own records are
+// owned by the record they belong to (internal/webhook/crm/v1alpha1/owners.go),
+// and never own records other services keep, such as organizations.
 package crm
 
 import (

@@ -12,15 +12,15 @@ import (
 )
 
 // ValidateOpportunityCreate rejects an Opportunity whose Company or owner
-// doesn't exist, or that names a Person who doesn't exist or works for
-// another Company.
+// doesn't exist, that names a Person who doesn't exist or works for another
+// Company, or that is owned by anything but its Company.
 func ValidateOpportunityCreate(ctx context.Context, c client.Reader, opportunity *crmv1alpha1.Opportunity) field.ErrorList {
 	return validateOpportunity(ctx, c, nil, opportunity)
 }
 
 // ValidateOpportunityUpdate applies the same checks to what changed: the
 // owner, if it changed, and the People added. The Company can't change,
-// which the schema enforces.
+// which the schema enforces, and neither can the owner references.
 func ValidateOpportunityUpdate(ctx context.Context, c client.Reader, oldOpportunity, newOpportunity *crmv1alpha1.Opportunity) field.ErrorList {
 	return validateOpportunity(ctx, c, oldOpportunity, newOpportunity)
 }
@@ -37,6 +37,9 @@ func validateOpportunity(ctx context.Context, c client.Reader, oldOpportunity, o
 	if oldOpportunity == nil {
 		_, errs := getCompany(ctx, c, spec.Child("companyRef"), opportunity.Spec.CompanyRef)
 		allErrs = append(allErrs, errs...)
+		allErrs = append(allErrs, validateOwnedOnlyBy(opportunity.OwnerReferences, "Company", company)...)
+	} else {
+		allErrs = append(allErrs, validateOwnersUnchanged(oldOpportunity.OwnerReferences, opportunity.OwnerReferences)...)
 	}
 
 	if oldOpportunity == nil || oldOpportunity.Spec.OwnerRef != opportunity.Spec.OwnerRef {

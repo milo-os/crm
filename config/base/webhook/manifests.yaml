@@ -10,6 +10,82 @@ webhooks:
     service:
       name: crm-webhook
       namespace: system
+      path: /mutate-crm-miloapis-com-v1alpha1-onboardinginvitation
+  failurePolicy: Fail
+  name: monboardinginvitation.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - onboardinginvitations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /mutate-crm-miloapis-com-v1alpha1-opportunity
+  failurePolicy: Fail
+  name: mopportunity.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - opportunities
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /mutate-crm-miloapis-com-v1alpha1-organizationonboarding
+  failurePolicy: Fail
+  name: morganizationonboarding.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - organizationonboardings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /mutate-crm-miloapis-com-v1alpha1-person
+  failurePolicy: Fail
+  name: mperson.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - people
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
       path: /mutate-example-miloapis-com-v1alpha1-resource
   failurePolicy: Fail
   name: mresource.kb.io

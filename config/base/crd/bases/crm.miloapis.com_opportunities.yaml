@@ -74,7 +74,8 @@ spec:
                   CompanyRef is the Company the sale is with. It must exist. A Company
                   can have many Opportunities. It can't be changed: a sale to another
                   Company is a new Opportunity, so the onboardings that name this one
-                  stay with its Company.
+                  stay with its Company. The Company owns the Opportunity: deleting the
+                  Company deletes the Opportunity.
                 properties:
                   name:
                     description: Name is the Company's name.

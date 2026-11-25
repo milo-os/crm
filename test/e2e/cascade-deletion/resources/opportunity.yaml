@@ -1,0 +1,12 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: hoolixyz-sale
+spec:
+  displayName: HooliXYZ sale
+  companyRef:
+    name: hooli-xyz
+  ownerRef:
+    name: e2e-cascade-owner
+  personRefs:
+    - name: nelson-bighetti
