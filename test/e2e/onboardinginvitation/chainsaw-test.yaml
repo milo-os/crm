@@ -17,6 +17,8 @@ spec:
       description: An invitation for a Person to an onboarding is accepted.
       try:
         - create:
+            file: resources/users.yaml
+        - create:
             file: resources/company.yaml
         - create:
             file: resources/person.yaml
@@ -79,7 +81,9 @@ spec:
       description: |
         Status sent with the spec on create is dropped, so clients can't set
         the inviter or claim a redemption. Status written through the status
-        subresource, as CRM does, is validated.
+        subresource, as CRM does, is validated: the inviter must exist, and
+        whoever redeemed it must be a User whose verified email is the
+        recipient email. Once set, neither can be changed or removed.
       try:
         - create:
             file: resources/invitation-with-status-on-create.yaml
@@ -102,9 +106,56 @@ spec:
         - script:
             content: >-
               kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
-              -p '{"status":{"phase":"Redeemed","expiresAt":"2026-12-01T00:00:00Z","inviterRef":{"name":"340583683847097153"},"redeemedUserRef":{"name":"340583683847097154"}}}'
+              -p '{"status":{"inviterRef":{"name":"e2e-nobody"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.inviterRef.name')): true
+              (contains($stderr, 'User not found')): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"redeemedUserRef":{"name":"e2e-invitation-owner"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.redeemedUserRef.name')): true
+              (contains($stderr, 'email isn')): true
+              (contains($stderr, 'recipientEmail')): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"redeemedUserRef":{"name":"e2e-richard"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.redeemedUserRef.name')): true
+              (contains($stderr, 'verified their email')): true
+        - script:
+            content: >-
+              kubectl patch user e2e-richard --subresource=status --type=merge
+              -p '{"status":{"emailVerification":"Verified"}}'
             check:
               ($error == null): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Redeemed","expiresAt":"2026-12-01T00:00:00Z","inviterRef":{"name":"e2e-invitation-owner"},"redeemedUserRef":{"name":"e2e-richard"}}}'
+            check:
+              ($error == null): true
+        - assert:
+            file: assertions/invitation-redeemed.yaml
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"redeemedUserRef":{"name":"e2e-invitation-owner"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'redeemedUserRef can')): true
+        - script:
+            content: >-
+              kubectl patch onboardinginvitation status-on-create --subresource=status --type=merge
+              -p '{"status":{"inviterRef":null}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'inviterRef can')): true
         - assert:
             file: assertions/invitation-redeemed.yaml
 
@@ -150,6 +201,42 @@ spec:
                   ($error != null): true
                   (contains($error, 'spec.recipientEmail')): true
                   (contains($error, 'must be an email address')): true
+
+    - name: reject-unknown-references
+      description: An invitation's onboarding and Person must exist, and the Person must work for the onboarding's Company.
+      try:
+        - create:
+            file: resources/other-company.yaml
+        - create:
+            file: resources/other-person.yaml
+        - create:
+            file: resources/invitation-unknown-onboarding.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.onboardingRef.name')): true
+                  (contains($error, 'OrganizationOnboarding not found')): true
+        - create:
+            file: resources/invitation-unknown-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRef.name')): true
+                  (contains($error, 'Person not found')): true
+        - create:
+            file: resources/invitation-person-of-other-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRef.name')): true
+                  (contains($error, 'Person works for Company "bachmanity"')): true
+        - create:
+            file: resources/invitation-other-email.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.recipientEmail')): true
+                  (contains($error, 'must be the Person')): true
 
     - name: delete
       description: Deleting an invitation removes it.

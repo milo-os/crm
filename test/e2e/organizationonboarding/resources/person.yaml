@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: gavin-belson
+spec:
+  givenName: Gavin
+  familyName: Belson
+  email: gavin@hooli.example
+  companyRef:
+    name: hooli

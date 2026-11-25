@@ -1,0 +1,6 @@
+apiVersion: iam.miloapis.com/v1alpha1
+kind: User
+metadata:
+  name: e2e-onboarding-owner
+spec:
+  email: owner@datum.example

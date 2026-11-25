@@ -7,4 +7,4 @@ spec:
   companyRef:
     name: pied-piper
   ownerRef:
-    name: "340583683847097153"
+    name: e2e-invitation-owner

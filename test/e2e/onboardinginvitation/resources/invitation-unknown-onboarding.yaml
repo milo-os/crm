@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: unknown-onboarding
+spec:
+  onboardingRef:
+    name: bachmanity-onboarding
+  personRef:
+    name: richard-hendricks
+  recipientEmail: richard@piedpiper.example

@@ -12,6 +12,12 @@ rules:
   - create
   - patch
 - apiGroups:
+  - billing.miloapis.com
+  resources:
+  - billingaccounts
+  verbs:
+  - get
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -19,6 +25,16 @@ rules:
   - create
   - get
   - update
+- apiGroups:
+  - crm.miloapis.com
+  resources:
+  - companies
+  - onboardinginvitations
+  - opportunities
+  - organizationonboardings
+  - people
+  verbs:
+  - get
 - apiGroups:
   - example.miloapis.com
   resources:
@@ -45,3 +61,15 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - iam.miloapis.com
+  resources:
+  - users
+  verbs:
+  - get
+- apiGroups:
+  - resourcemanager.miloapis.com
+  resources:
+  - organizations
+  verbs:
+  - get

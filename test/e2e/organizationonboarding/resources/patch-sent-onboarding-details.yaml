@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: sent-onboarding
+spec:
+  organizationDetails:
+    displayName: Hooli XYZ

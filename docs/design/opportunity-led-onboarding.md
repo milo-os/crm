@@ -35,7 +35,7 @@ flowchart TD
 | `OrganizationOnboarding` | Durable setup journey for one organization | Company and originating Opportunity references, saved organization and billing details, selected billing currency and arrangement, lifecycle, resulting organization and billing account references |
 | `OnboardingInvitation` | One recipient's invitation | Onboarding and Person references, immutable recipient email; in status, phase, expiration, trusted inviter identity, delivery and redemption state |
 
-A Company normally has one organization but can reference multiple. Multiple Opportunities can belong to the same Company. References are separate from ownership: deleting a Company, Opportunity, or onboarding record must not garbage-collect a live organization or billing account.
+Every reference must point to a record that exists, whether it names another CRM record, a Milo Organization or User, or a BillingAccount, and in spec or in the status CRM writes. Cross references must agree: People named on an Opportunity or invitation work for its Company, an onboarding's Opportunity is with its Company, its current invitation is for that onboarding, its billing account is in its organization's namespace, and the User who redeems an invitation has verified the invitation's email. Admission webhooks check this when a reference is set or changed. A Person's Company can't change: someone who moves to another Company is a new Person there, so every record naming them still points at someone from its Company. Likewise an Opportunity's Company can't change: a sale to another Company is a new Opportunity, so an onboarding's Opportunity stays with its Company. Links CRM records in status to what an invitation or onboarding produced (the inviter, the redeeming User, a Person's User, the created Organization and BillingAccount) can't be changed or removed once set. A Company normally has one organization but can reference multiple. Multiple Opportunities can belong to the same Company. References are separate from ownership: deleting a Company, Opportunity, or onboarding record must not garbage-collect a live organization or billing account.
 
 An onboarding record and an invitation have different lifetimes. Resends and replacements continue the same onboarding. Only a deliberate new onboarding creates another organization. A Person is not a User; linking a contact to an authenticated account requires verified identity, not a staff-entered user identifier.
 
@@ -106,7 +106,7 @@ spec:
   recipientEmail: jane@acme.example
 ```
 
-An invitation captures the recipient email at issuance; changing a Person does not redirect an existing invitation. The service records the authenticated inviter and invoice authorization evidence, rather than trusting caller-supplied attribution.
+An invitation captures the recipient email at issuance, which must be the Person's email then; changing a Person does not redirect an existing invitation. The service records the authenticated inviter and invoice authorization evidence, rather than trusting caller-supplied attribution.
 
 CRM creates invitations through its send, resend, and replace actions; staff can view them but not create or change them. The onboarding, Person, and recipient email can't be changed after creation. Status, written only by CRM, records everything CRM does with the invitation: its phase (Pending, Sent, Redeemed, Expired, or Revoked), the inviter, when it was sent and expires, and the User who redeemed it, whose verified email matched. While the invitation is current, only that User can work on the onboarding, and on completion they become the first administrator. Revocation and expiry are conditions. The invitation never holds the link or anything that could be used as one.
 
@@ -114,7 +114,7 @@ Use a thin Milo-authenticated server-side action API for send, resend, replace, 
 
 | Operation | Required behavior |
 | --- | --- |
-| Send | Validate references and permission, freeze staff-prepared details, billing currency, and billing arrangement, activate the invitation, enqueue email |
+| Send | Validate references and permission, freeze the billing currency and billing arrangement, activate the invitation, enqueue email |
 | Resend | Issue a fresh seven-day link for the same onboarding and recipient, invalidate the previous link, and send a new delivery; do not create an organization |
 | Replace | Invalidate prior invitation and recipient access, preserve organization draft details, issue to the replacement recipient |
 | Cancel invitation | Revoke access while retaining saved onboarding for a later replacement |

@@ -36,6 +36,109 @@ webhooks:
     service:
       name: crm-webhook
       namespace: system
+      path: /validate-crm-miloapis-com-v1alpha1-company
+  failurePolicy: Fail
+  name: vcompany.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - companies
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /validate-crm-miloapis-com-v1alpha1-onboardinginvitation
+  failurePolicy: Fail
+  name: vonboardinginvitation.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - onboardinginvitations
+    - onboardinginvitations/status
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /validate-crm-miloapis-com-v1alpha1-opportunity
+  failurePolicy: Fail
+  name: vopportunity.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - opportunities
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /validate-crm-miloapis-com-v1alpha1-organizationonboarding
+  failurePolicy: Fail
+  name: vorganizationonboarding.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - organizationonboardings
+    - organizationonboardings/status
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
+      path: /validate-crm-miloapis-com-v1alpha1-person
+  failurePolicy: Fail
+  name: vperson.crm.miloapis.com
+  rules:
+  - apiGroups:
+    - crm.miloapis.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - people
+    - people/status
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: crm-webhook
+      namespace: system
       path: /validate-example-miloapis-com-v1alpha1-resource
   failurePolicy: Fail
   name: vresource.kb.io

@@ -1,0 +1,6 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: finished-onboarding
+  labels:
+    team: sales
