@@ -8,7 +8,9 @@ vars:
   TEST_INFRA_REPO_REF: 'v0.7.2'
   CONTROLLER_TOOLS_VERSION: "v0.17.3"
   DEFAULTER_GEN_VERSION: "v0.37.1"
-  GOLANGCI_LINT_VERSION: "v2.15"
+  # renovate: datasource=github-releases depName=golangci/golangci-lint
+  GOLANGCI_LINT_VERSION: "v2.15.0"
+  # renovate: datasource=github-releases depName=kyverno/chainsaw
   CHAINSAW_VERSION: "v0.2.15"
   # The milo-os/activity release deployed where these policies run, so CEL and
   # template functions match production. Keep in sync with
