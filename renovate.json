@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "github>milo-os/.github:renovate-config"
+  ],
+  "customManagers": [
+    {
+      "description": "CRDs from other milo-os services, pinned to a release tag in raw GitHub URLs, that config/dependencies installs into the kind cluster for end-to-end tests",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^config/dependencies/.+/kustomization\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "https://raw\\.githubusercontent\\.com/(?<depName>milo-os/[^/]+)/refs/tags/(?<currentValue>v[^/]+)/"
+      ],
+      "datasourceTemplate": "github-tags"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Bump the go.miloapis.com/milo module and the Milo CRDs config/dependencies installs together, so the types CRM compiles against match the CRDs it tests against",
+      "matchPackageNames": [
+        "go.miloapis.com/milo",
+        "milo-os/milo"
+      ],
+      "groupName": "milo",
+      "groupSlug": "milo"
+    },
+    {
+      "description": "Bump the go.miloapis.com/billing module and the Billing CRDs config/dependencies installs together, so the types CRM compiles against match the CRDs it tests against",
+      "matchPackageNames": [
+        "go.miloapis.com/billing",
+        "milo-os/billing"
+      ],
+      "groupName": "billing",
+      "groupSlug": "billing"
+    }
+  ]
+}
