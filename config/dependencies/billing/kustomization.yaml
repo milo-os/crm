@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Billing's BillingAccount CRD, so CRM's webhooks can check an onboarding's
+# billing account reference in the kind test cluster. On the Milo control
+# plane it already exists; this is for development and end-to-end tests only.
+# Sourced directly from milo-os/billing so it can't drift from the real
+# definition. Keep the tag equal to the go.miloapis.com/billing version in
+# go.mod; Renovate bumps both together.
+resources:
+  - https://raw.githubusercontent.com/milo-os/billing/refs/tags/v0.12.0/config/base/crd/bases/billing.miloapis.com_billingaccounts.yaml
