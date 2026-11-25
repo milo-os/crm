@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: status-on-create
+(status.inviterRef == null): true
+(status.redeemedUserRef == null): true
+(status.phase == null): true
+(status.expiresAt == null): true

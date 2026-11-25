@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: status-on-create
+status:
+  phase: Redeemed
+  expiresAt: "2026-12-01T00:00:00Z"
+  inviterRef:
+    name: "340583683847097153"
+  redeemedUserRef:
+    name: "340583683847097154"

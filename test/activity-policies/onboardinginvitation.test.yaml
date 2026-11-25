@@ -1,0 +1,185 @@
+# OnboardingInvitation (crm.miloapis.com): direct creates, updates, and deletes
+# by a person, and the requests that must not produce activity, including the
+# CRM service's own writes.
+policy_files:
+  - ../../config/components/activity-policies
+
+resource_kinds:
+  crm.miloapis.com:
+    onboardinginvitations: OnboardingInvitation
+
+tests:
+  - name: create links the new invitation by its name
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      requestURI: /apis/crm.miloapis.com/v1alpha1/onboardinginvitations
+      responseStatus:
+        code: 201
+      responseObject:
+        metadata:
+          name: acme-jane
+        spec:
+          onboardingRef:
+            name: acme-onboarding
+          personRef:
+            name: jane-smith
+          recipientEmail: jane@acme.example
+    exp_policy: crm.miloapis.com-onboardinginvitation
+    exp_rule: create
+    exp_summary: alice@example.com created invitation acme-jane
+    exp_change_source: human
+    exp_actor:
+      type: user
+      name: alice@example.com
+      email: alice@example.com
+    exp_links:
+      - marker: acme-jane
+        apiGroup: crm.miloapis.com
+        kind: OnboardingInvitation
+
+  - name: create without a response object falls back to a generic summary
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      responseStatus:
+        code: 201
+    exp_rule: create-fallback
+    exp_summary: alice@example.com created an invitation
+
+  - name: patch is an update
+    audit:
+      verb: patch
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+        name: acme-jane
+      responseStatus:
+        code: 200
+      requestObject:
+        metadata:
+          labels:
+            team: sales
+    exp_rule: update
+    exp_summary: alice@example.com updated invitation acme-jane
+    exp_links:
+      - marker: acme-jane
+        apiGroup: crm.miloapis.com
+        kind: OnboardingInvitation
+        name: acme-jane
+
+  - name: full update is an update
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+        name: acme-jane
+      responseStatus:
+        code: 200
+    exp_rule: update
+    exp_summary: alice@example.com updated invitation acme-jane
+
+  - name: delete names the removed invitation
+    audit:
+      verb: delete
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+        name: acme-jane
+      responseStatus:
+        code: 200
+    exp_rule: delete
+    exp_summary: alice@example.com deleted invitation acme-jane
+
+  - name: rejected create produces no activity
+    policy: crm.miloapis.com-onboardinginvitation
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      responseStatus:
+        code: 422
+    exp_no_match: true
+
+  - name: the CRM service sending an invitation produces no activity
+    policy: crm.miloapis.com-onboardinginvitation
+    audit:
+      verb: create
+      user:
+        username: system:serviceaccount:crm-system:crm-manager
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: status update produces no activity
+    policy: crm.miloapis.com-onboardinginvitation
+    audit:
+      verb: update
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+        name: acme-jane
+        subresource: status
+      responseStatus:
+        code: 200
+    exp_no_match: true
+
+  - name: dry-run create produces no activity
+    policy: crm.miloapis.com-onboardinginvitation
+    audit:
+      verb: create
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      requestURI: /apis/crm.miloapis.com/v1alpha1/onboardinginvitations?dryRun=All
+      responseStatus:
+        code: 201
+    exp_no_match: true
+
+  - name: reads produce no activity
+    policy: crm.miloapis.com-onboardinginvitation
+    audit:
+      verb: list
+      user:
+        username: alice@example.com
+      objectRef:
+        apiGroup: crm.miloapis.com
+        apiVersion: v1alpha1
+        resource: onboardinginvitations
+      responseStatus:
+        code: 200
+    exp_no_match: true

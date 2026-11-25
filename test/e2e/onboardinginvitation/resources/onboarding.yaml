@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: pied-piper-onboarding
+spec:
+  companyRef:
+    name: pied-piper
+  opportunityRef:
+    name: pied-piper-initial-sale
+  billing:
+    currency: USD

@@ -16,6 +16,7 @@ labels:
 
 resources:
   - company-policy.yaml
+  - onboardinginvitation-policy.yaml
   - opportunity-policy.yaml
   - organizationonboarding-policy.yaml
   - person-policy.yaml

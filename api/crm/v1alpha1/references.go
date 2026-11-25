@@ -85,3 +85,15 @@ type BillingAccountReference struct {
 	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid BillingAccount name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
 	Name string `json:"name"`
 }
+
+// OrganizationOnboardingReference names an OrganizationOnboarding. CRM
+// resources are cluster-scoped, so the name alone identifies it.
+type OrganizationOnboardingReference struct {
+	// Name is the OrganizationOnboarding's name.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')",message="must be a valid OrganizationOnboarding name: lowercase letters, digits, '-', and '.', starting and ending with a letter or digit"
+	Name string `json:"name"`
+}

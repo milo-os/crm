@@ -9,6 +9,8 @@ spec:
   launchStage: Alpha
   inheritedRoles:
     - name: crm.miloapis.com-viewer
+  # Invitations are absent on purpose: CRM creates and changes them through the
+  # send, resend, replace, and cancel actions, never staff directly.
   includedPermissions:
     - crm.miloapis.com/companies.create
     - crm.miloapis.com/companies.update

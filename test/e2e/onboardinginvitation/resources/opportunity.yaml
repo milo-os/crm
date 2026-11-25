@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: pied-piper-initial-sale
+spec:
+  displayName: Pied Piper initial sale
+  companyRef:
+    name: pied-piper
+  ownerRef:
+    name: "340583683847097153"

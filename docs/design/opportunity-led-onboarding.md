@@ -33,7 +33,7 @@ flowchart TD
 | `Person` | Sales contact, including people without accounts | Name, email, Company reference, optional verified Milo User reference |
 | `Opportunity` | Potential sale | Short description, Company reference, involved People, owner User reference, stage |
 | `OrganizationOnboarding` | Durable setup journey for one organization | Company and originating Opportunity references, saved organization and billing details, selected billing currency and arrangement, lifecycle, resulting organization and billing account references |
-| `OnboardingInvitation` | One recipient's invitation | Onboarding and Person references, immutable recipient email, expiration, trusted inviter identity, delivery and redemption state |
+| `OnboardingInvitation` | One recipient's invitation | Onboarding and Person references, immutable recipient email; in status, phase, expiration, trusted inviter identity, delivery and redemption state |
 
 A Company normally has one organization but can reference multiple. Multiple Opportunities can belong to the same Company. References are separate from ownership: deleting a Company, Opportunity, or onboarding record must not garbage-collect a live organization or billing account.
 
@@ -104,10 +104,11 @@ spec:
   personRef:
     name: jane-smith
   recipientEmail: jane@acme.example
-  expiresAt: "2026-11-15T00:00:00Z"
 ```
 
 An invitation captures the recipient email at issuance; changing a Person does not redirect an existing invitation. The service records the authenticated inviter and invoice authorization evidence, rather than trusting caller-supplied attribution.
+
+CRM creates invitations through its send, resend, and replace actions; staff can view them but not create or change them. The onboarding, Person, and recipient email can't be changed after creation. Status, written only by CRM, records everything CRM does with the invitation: its phase (Pending, Sent, Redeemed, Expired, or Revoked), the inviter, when it was sent and expires, and the User who redeemed it, whose verified email matched. While the invitation is current, only that User can work on the onboarding, and on completion they become the first administrator. Revocation and expiry are conditions. The invitation never holds the link or anything that could be used as one.
 
 Use a thin Milo-authenticated server-side action API for send, resend, replace, cancel invitation, cancel onboarding, redeem, save details, and submit. Keep durable state in the five CRDs; do not add a request resource for each action. CRDs do not automatically provide custom action endpoints, so implement handlers with Milo authentication and authorization. Recipients use these handlers rather than accessing CRM resources directly.
 

@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: invalid-onboarding
+spec:
+  onboardingRef:
+    name: Not_An_Onboarding
+  personRef:
+    name: richard-hendricks
+  recipientEmail: richard@piedpiper.example
