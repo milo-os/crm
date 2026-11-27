@@ -25,8 +25,9 @@ type CompanySpec struct {
 	Website string `json:"website,omitempty"`
 
 	// OrganizationRefs links the Company to the Milo organizations created for
-	// it, normally one. These are links, not ownership: deleting the Company
-	// never deletes an organization.
+	// it, normally one. Each organization must exist when it is linked. These
+	// are links, not ownership: deleting the Company deletes its People,
+	// Opportunities, and onboardings, but never an organization.
 	//
 	// +optional
 	// +listType=map

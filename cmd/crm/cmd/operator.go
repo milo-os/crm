@@ -20,13 +20,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	billingv1alpha1 "go.miloapis.com/billing/api/v1alpha1"
 	"go.miloapis.com/instrumentation/buildinfo"
 	"go.miloapis.com/instrumentation/logging"
+	iamv1alpha1 "go.miloapis.com/milo/pkg/apis/iam/v1alpha1"
+	resourcemanagerv1alpha1 "go.miloapis.com/milo/pkg/apis/resourcemanager/v1alpha1"
 
 	crmv1alpha1 "go.miloapis.com/crm/api/crm/v1alpha1"
 	examplev1alpha1 "go.miloapis.com/crm/api/example/v1alpha1"
 	"go.miloapis.com/crm/internal/config"
 	examplecontroller "go.miloapis.com/crm/internal/controller/example"
+	crmwebhookv1alpha1 "go.miloapis.com/crm/internal/webhook/crm/v1alpha1"
 	examplewebhookv1alpha1 "go.miloapis.com/crm/internal/webhook/example/v1alpha1"
 )
 
@@ -40,6 +44,10 @@ func init() {
 	utilruntime.Must(config.AddToScheme(scheme))
 	utilruntime.Must(config.RegisterDefaults(scheme))
 	utilruntime.Must(crmv1alpha1.AddToScheme(scheme))
+	// Records other services own that CRM's webhooks read references to.
+	utilruntime.Must(resourcemanagerv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(iamv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(billingv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(examplev1alpha1.AddToScheme(scheme))
 }
 
@@ -131,6 +139,10 @@ func newOperatorCommand(info BuildInfo) *cobra.Command {
 
 			if err = examplewebhookv1alpha1.SetupResourceWebhookWithManager(mgr); err != nil {
 				return fmt.Errorf("creating example Resource webhook: %w", err)
+			}
+
+			if err = crmwebhookv1alpha1.SetupWebhooksWithManager(mgr); err != nil {
+				return fmt.Errorf("creating CRM webhooks: %w", err)
 			}
 
 			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

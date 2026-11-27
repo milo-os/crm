@@ -10,6 +10,8 @@ spec:
     - The payment arrangement defaults to Card, and only supported currencies
       and arrangements are accepted.
     - The Company and Opportunity can't be changed.
+    - Once sent, the payment arrangement can't change; once submitted,
+      completed, or cancelled, nothing in the spec can.
     - Progress is status: clients can't set it with the spec, and CRM's status
       writes are validated.
     - Invalid drafts are rejected with clear messages.
@@ -18,6 +20,8 @@ spec:
     - name: create
       description: A draft with only its references and currency is accepted and defaults to Card.
       try:
+        - create:
+            file: resources/owner.yaml
         - create:
             file: resources/company.yaml
         - create:
@@ -59,7 +63,11 @@ spec:
       description: |
         Status sent with the spec on create is dropped, so clients can't set
         completion state. Status written through the status subresource, as CRM
-        does, is validated.
+        does, is validated, including that its references exist: the current
+        invitation must be for this onboarding, the organization must be linked
+        to the onboarding's Company, and the billing account must be in the
+        organization's namespace. Once set, the organization and billing
+        account can't be changed or removed.
       try:
         - create:
             file: resources/onboarding-with-status-on-create.yaml
@@ -72,12 +80,76 @@ spec:
             check:
               ($error != null): true
               (contains($stderr, 'Unsupported value')): true
+        - create:
+            file: resources/person.yaml
+        - create:
+            file: resources/invitation.yaml
+        - create:
+            file: resources/organization.yaml
         - script:
             content: >-
               kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
-              -p '{"status":{"phase":"Invited","currentInvitationRef":{"name":"gavin-belson"}}}'
+              -p '{"status":{"organizationRef":{"name":"e2e-hooli"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.organizationRef.name')): true
+              (contains($stderr, 'linked to the onboarding')): true
+        - patch:
+            file: resources/patch-company-link-organization.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"currentInvitationRef":{"name":"nothing"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.currentInvitationRef.name')): true
+              (contains($stderr, 'OnboardingInvitation not found')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"organizationRef":{"name":"org-8f3k2"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.organizationRef.name')): true
+              (contains($stderr, 'Organization not found')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"organizationRef":{"name":"e2e-hooli"},"billingAccountRef":{"name":"other-billing"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.billingAccountRef.name')): true
+              (contains($stderr, 'BillingAccount not found in namespace organization-e2e-hooli')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"invoiceAuthorization":{"userRef":{"name":"e2e-nobody"},"time":"2026-11-25T00:00:00Z"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.invoiceAuthorization.userRef.name')): true
+              (contains($stderr, 'User not found')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"phase":"Invited","currentInvitationRef":{"name":"status-on-create-gavin"},"organizationRef":{"name":"e2e-hooli"},"billingAccountRef":{"name":"hooli-billing"},"invoiceAuthorization":{"userRef":{"name":"e2e-onboarding-owner"},"time":"2026-11-25T00:00:00Z"}}}'
             check:
               ($error == null): true
+        - assert:
+            file: assertions/onboarding-invited.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"organizationRef":{"name":"org-8f3k2"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'organizationRef can')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"billingAccountRef":null}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'billingAccountRef can')): true
         - assert:
             file: assertions/onboarding-invited.yaml
 
@@ -217,6 +289,87 @@ spec:
                   ($error != null): true
                   (contains($error, 'spec.billing.contactInfo.invoiceEmails')): true
                   (contains($error, 'Too many')): true
+
+    - name: reject-unknown-references
+      description: An onboarding's Company and Opportunity must exist, and the Opportunity must be with that Company.
+      try:
+        - create:
+            file: resources/other-company.yaml
+        - create:
+            file: resources/other-opportunity.yaml
+        - create:
+            file: resources/onboarding-unknown-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef.name')): true
+                  (contains($error, 'Company not found')): true
+        - create:
+            file: resources/onboarding-unknown-opportunity.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.opportunityRef.name')): true
+                  (contains($error, 'Opportunity not found')): true
+        - create:
+            file: resources/onboarding-opportunity-of-other-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.opportunityRef.name')): true
+                  (contains($error, 'Opportunity is with Company "endframe"')): true
+
+    - name: sent-onboarding-keeps-its-terms
+      description: |
+        Once an onboarding is sent, its payment arrangement (and currency)
+        can't change: they are what sales agreed. Its other details still can.
+      try:
+        - create:
+            file: resources/sent-onboarding.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding sent-onboarding --subresource=status --type=merge
+              -p '{"status":{"phase":"Invited"}}'
+            check:
+              ($error == null): true
+        - patch:
+            file: resources/patch-sent-onboarding-billing.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.billing.paymentArrangement')): true
+                  (contains($error, 'be changed once the onboarding is sent')): true
+        - patch:
+            file: resources/patch-sent-onboarding-details.yaml
+        - assert:
+            file: assertions/sent-onboarding-updated.yaml
+
+    - name: finished-onboarding-is-locked
+      description: |
+        Once an onboarding is submitted, completed, or cancelled, its details
+        can't change, so CRM sets up exactly what was submitted. Labels and
+        other metadata still can.
+      try:
+        - create:
+            file: resources/finished-onboarding.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding finished-onboarding --subresource=status --type=merge
+              -p '{"status":{"phase":"Complete"}}'
+            check:
+              ($error == null): true
+        - patch:
+            file: resources/patch-finished-onboarding-details.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'submitted or cancelled')): true
+        - patch:
+            file: resources/patch-finished-onboarding-label.yaml
+        - assert:
+            file: assertions/finished-onboarding-unchanged.yaml
+        - error:
+            file: resources/patch-finished-onboarding-details.yaml
 
     - name: delete
       description: Deleting an onboarding removes it.

@@ -1,0 +1,18 @@
+apiVersion: resourcemanager.miloapis.com/v1alpha1
+kind: Organization
+metadata:
+  name: e2e-hooli
+spec: {}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: organization-e2e-hooli
+---
+apiVersion: billing.miloapis.com/v1alpha1
+kind: BillingAccount
+metadata:
+  name: hooli-billing
+  namespace: organization-e2e-hooli
+spec:
+  currencyCode: USD

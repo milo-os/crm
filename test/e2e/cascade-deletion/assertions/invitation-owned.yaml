@@ -1,0 +1,8 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: hoolixyz-onboarding-nelson
+  ownerReferences:
+    - apiVersion: crm.miloapis.com/v1alpha1
+      kind: OrganizationOnboarding
+      name: hoolixyz-onboarding

@@ -1,0 +1,9 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: acme
+spec:
+  organizationRefs:
+    - name: e2e-acme
+    - name: e2e-acme-eu
+    - name: org-8f3k2

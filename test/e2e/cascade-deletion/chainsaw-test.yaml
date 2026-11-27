@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: cascade-deletion
+spec:
+  description: |
+    Tests that CRM's records form one ownership tree, so deleting a Company
+    deletes everything about it:
+
+      Company
+      ├── Person
+      ├── Opportunity
+      └── OrganizationOnboarding
+          └── OnboardingInvitation
+
+    - CRM makes each new record owned by the record it belongs to.
+    - Nobody can add another owner or change the owner afterwards.
+    - Deleting the Company deletes its People, Opportunities, and onboardings,
+      and the onboardings' invitations.
+
+  steps:
+    - name: records-are-owned
+      description: Each new record is owned by its Company, and each invitation by its onboarding.
+      try:
+        - create:
+            file: resources/owner.yaml
+        - create:
+            file: resources/company.yaml
+        - create:
+            file: resources/person.yaml
+        - create:
+            file: resources/opportunity.yaml
+        - create:
+            file: resources/onboarding.yaml
+        - create:
+            file: resources/invitation.yaml
+        - assert:
+            file: assertions/person-owned.yaml
+        - assert:
+            file: assertions/opportunity-owned.yaml
+        - assert:
+            file: assertions/onboarding-owned.yaml
+        - assert:
+            file: assertions/invitation-owned.yaml
+
+    - name: owners-are-protected
+      description: |
+        A record can't be created with another owner, and its owner can't be
+        removed afterwards, so it can't outlive its Company.
+      try:
+        - create:
+            file: resources/person-with-second-owner.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'metadata.ownerReferences')): true
+                  (contains($error, 'can only be owned by its Company hooli-xyz')): true
+        - script:
+            content: >-
+              kubectl patch person nelson-bighetti --type=json
+              -p '[{"op":"remove","path":"/metadata/ownerReferences"}]'
+            check:
+              ($error != null): true
+              (contains($stderr, 'owner references can')): true
+        - script:
+            content: >-
+              kubectl patch organizationonboarding hoolixyz-onboarding --type=json
+              -p '[{"op":"remove","path":"/metadata/ownerReferences"}]'
+            check:
+              ($error != null): true
+              (contains($stderr, 'owner references can')): true
+        - assert:
+            file: assertions/person-owned.yaml
+        - assert:
+            file: assertions/onboarding-owned.yaml
+
+    - name: deleting-the-company-deletes-its-records
+      description: |
+        Deleting the Company deletes its People, Opportunities, and onboardings,
+        and through the onboardings their invitations.
+      try:
+        - delete:
+            ref:
+              apiVersion: crm.miloapis.com/v1alpha1
+              kind: Company
+              name: hooli-xyz
+        - error:
+            file: assertions/person-exists.yaml
+        - error:
+            file: assertions/opportunity-exists.yaml
+        - error:
+            file: assertions/onboarding-exists.yaml
+        - error:
+            file: assertions/invitation-exists.yaml

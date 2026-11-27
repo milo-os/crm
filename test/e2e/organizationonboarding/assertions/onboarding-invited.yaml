@@ -5,4 +5,11 @@ metadata:
 status:
   phase: Invited
   currentInvitationRef:
-    name: gavin-belson
+    name: status-on-create-gavin
+  organizationRef:
+    name: e2e-hooli
+  billingAccountRef:
+    name: hooli-billing
+  invoiceAuthorization:
+    userRef:
+      name: e2e-onboarding-owner

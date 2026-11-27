@@ -102,8 +102,11 @@ spec:
       description: |
         A userRef sent with the spec on create is dropped, because it is status.
         Setting it through the status subresource, as CRM does, is accepted
-        when the User name is valid and rejected when it isn't.
+        when the User name is valid and rejected when it isn't. Once set, it
+        can't be changed or removed.
       try:
+        - create:
+            file: resources/user.yaml
         - create:
             file: resources/person-with-user-on-create.yaml
         - assert:
@@ -118,11 +121,55 @@ spec:
         - script:
             content: >-
               kubectl patch person ann --subresource=status --type=merge
-              -p '{"status":{"userRef":{"name":"340583683847097153"}}}'
+              -p '{"status":{"userRef":{"name":"e2e-nobody"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.userRef.name')): true
+              (contains($stderr, 'User not found')): true
+        - script:
+            content: >-
+              kubectl patch person ann --subresource=status --type=merge
+              -p '{"status":{"userRef":{"name":"e2e-person-user"}}}'
             check:
               ($error == null): true
         - assert:
             file: assertions/person-with-user.yaml
+        - script:
+            content: >-
+              kubectl patch person ann --subresource=status --type=merge
+              -p '{"status":{"userRef":{"name":"e2e-nobody"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'userRef can')): true
+        - script:
+            content: >-
+              kubectl patch person ann --subresource=status --type=merge
+              -p '{"status":{"userRef":null}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'userRef can')): true
+        - assert:
+            file: assertions/person-with-user.yaml
+
+    - name: reject-unknown-company
+      description: |
+        A Person must work for a Company that exists, and can't move to
+        another Company: someone who moves is a new Person there.
+      try:
+        - create:
+            file: resources/person-unknown-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef.name')): true
+                  (contains($error, 'Company not found')): true
+        - patch:
+            file: resources/patch-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef')): true
+                  (contains($error, 'a new Person')): true
 
     - name: delete
       description: Deleting a Person removes it.

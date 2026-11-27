@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: status-on-create-gavin
+spec:
+  onboardingRef:
+    name: status-on-create
+  personRef:
+    name: gavin-belson
+  recipientEmail: gavin@hooli.example

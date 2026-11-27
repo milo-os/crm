@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: unknown-company
+spec:
+  displayName: Deal
+  companyRef:
+    name: umbrella
+  ownerRef:
+    name: e2e-opportunity-owner

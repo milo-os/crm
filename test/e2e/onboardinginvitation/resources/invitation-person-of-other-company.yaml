@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: person-of-other-company
+spec:
+  onboardingRef:
+    name: pied-piper-onboarding
+  personRef:
+    name: jian-yang
+  recipientEmail: jian@bachmanity.example

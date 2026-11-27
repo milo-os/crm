@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: jane-smith
+spec:
+  companyRef:
+    name: vandelay-industries

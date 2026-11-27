@@ -33,14 +33,19 @@ docs/                   # enhancement and design
 ## Adding a resource
 
 1. Add `api/crm/v1alpha1/<kind>_types.go` with the type and list type, `+kubebuilder:object:root=true`, `+kubebuilder:resource:scope=Cluster`, and an `init()` that registers both with `SchemeBuilder.Register(func(scheme *runtime.Scheme) error {...})` (see `api/crm/v1alpha1/company_types.go`).
-2. Put field rules in the type with kubebuilder markers and CEL (`+kubebuilder:validation:XValidation` with a clear `message`). Webhooks are only for checks the schema can't express, such as references to other records or who is making the request.
+2. Put field rules in the type with kubebuilder markers and CEL (`+kubebuilder:validation:XValidation` with a clear `message`), including what can't change and when. Webhooks are only for checks the schema can't express, such as references to other records; who may write is IAM's job. If the kind belongs to another CRM record, have the defaulting webhook make it owned by that record (`internal/webhook/crm/v1alpha1/owners.go`).
 3. Run `task generate && task manifests`. `hack/sync-crd-kustomization.sh` adds the CRD to `config/base/crd/kustomization.yaml`.
 4. Test the schema rules with a chainsaw suite under `test/e2e/<kind>/`.
-5. Add a sample to `config/samples/`, a `ProtectedResource` to `config/components/iam/protected-resources/`, its permissions to the `crm.miloapis.com-viewer` and `-admin` roles, and an activity policy (below).
+5. Add the kind's rules to `internal/webhook/crm/v1alpha1/README.md`, the rules at a glance.
+6. Add a sample to `config/samples/`, a `ProtectedResource` to `config/components/iam/protected-resources/`, its permissions to the `crm.miloapis.com-viewer` and `-admin` roles, and an activity policy (below).
 
 ## Admission webhooks
 
+`internal/webhook/crm/v1alpha1/README.md` lists every rule on CRM resources: CEL and webhook checks, what can change and when, who writes, and ownership. Update it in the same change whenever you add, change, or remove a CEL rule, a validation rule, or an owner.
+
 Follow the service-catalog layout. Webhooks live in `internal/webhook/<group>/v1alpha1` (package `v1alpha1`), expose `Setup<Kind>WebhookWithManager`, handle defaulting and logging, and delegate every rule to `internal/validation/<group>`. Validation functions are named `Validate<Kind>Create/Update/Delete`, return a `field.ErrorList`, and are covered by table-driven unit tests; the webhook turns the list into `apierrors.NewInvalid`. Every `+kubebuilder:webhook` marker must set `serviceName=crm-webhook`, the manager's webhook Service; controller-gen otherwise writes `webhook-service`, which does not exist.
+
+CRM's webhooks live in `internal/webhook/crm/v1alpha1` and are registered together by `SetupWebhooksWithManager`; their rules are in `internal/validation/crm`. They validate and set owner references, and fail closed (`failurePolicy=fail`). Check a reference to another CRM record when it is set or changed, not on every update, and read it with the manager's uncached API reader (`mgr.GetAPIReader()`) so a record created a moment earlier is found; give the webhook `get` on the kind with a `+kubebuilder:rbac` marker. Status references are checked too: the webhooks also receive status writes (`resources=<kind>;<kind>/status`), where CRM records them. Records other Milo services own (Organizations, Users, BillingAccounts) are read with their Go types from `go.miloapis.com/milo` and `go.miloapis.com/billing`, registered in the operator's scheme; `config/dependencies/` installs their CRDs into the kind cluster for end-to-end tests. Keep the CRD tags there equal to the module versions in `go.mod`; Renovate bumps each pair in one PR. New records are owned by the record they belong to, set by a defaulting webhook on create (`owners.go`): People, Opportunities, and onboardings by their Company, invitations by their onboarding, so Milo's garbage collector deletes a Company's records with it. Give each record one owner, and never make a CRM record own one other services keep, such as an Organization or BillingAccount. Leave who may write to IAM rather than checking the requester in a webhook; when a rule needs the requesting Milo User, their User name is the request's `UserInfo.UID`, not its username.
 
 ## Activity policies
 

@@ -1,0 +1,12 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: person-from-other-company
+spec:
+  displayName: Deal
+  companyRef:
+    name: initech
+  ownerRef:
+    name: e2e-opportunity-owner
+  personRefs:
+    - name: bill-lumbergh

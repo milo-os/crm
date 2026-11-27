@@ -1,0 +1,4 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OnboardingInvitation
+metadata:
+  name: hoolixyz-onboarding-nelson

@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: bill-lumbergh
+spec:
+  givenName: Bill
+  familyName: Lumbergh
+  email: bill@initrode.example
+  companyRef:
+    name: initrode

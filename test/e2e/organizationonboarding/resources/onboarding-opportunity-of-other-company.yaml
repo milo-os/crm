@@ -1,0 +1,11 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: opportunity-of-other-company
+spec:
+  companyRef:
+    name: hooli
+  opportunityRef:
+    name: endframe-sale
+  billing:
+    currency: USD

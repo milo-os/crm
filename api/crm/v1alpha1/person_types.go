@@ -32,19 +32,26 @@ type PersonSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self.matches('^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$')",message="must be an email address, such as jane@example.com"
 	Email string `json:"email"`
 
-	// CompanyRef is the Company the Person works for.
-	// A Company can have many People.
+	// CompanyRef is the Company the Person works for. It must exist. A
+	// Company can have many People. It can't be changed: someone who moves to
+	// another Company is a new Person there, so the Opportunities and
+	// invitations that name them keep pointing at someone from their Company.
+	// The Company owns the Person: deleting the Company deletes the Person.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="companyRef can't be changed; someone who moves to another Company is a new Person"
 	CompanyRef CompanyReference `json:"companyRef"`
 }
 
 // PersonStatus is what CRM has recorded about the Person.
+//
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.userRef) || (has(self.userRef) && self.userRef == oldSelf.userRef)",message="userRef can't be changed or removed once set"
 type PersonStatus struct {
 	// UserRef links the Person to their Milo User, new or existing. CRM sets
 	// it when the Person redeems an invitation, from the signed-in User making
 	// that request, once their verified email matches the invitation. It is
 	// status because only CRM writes it; staff roles can't update status.
+	// The User must exist. Once set, it can't be changed or removed.
 	//
 	// +optional
 	UserRef *UserReference `json:"userRef,omitempty"`

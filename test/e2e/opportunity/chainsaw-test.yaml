@@ -17,6 +17,8 @@ spec:
       description: An Opportunity without a stage is accepted and starts at Prospecting.
       try:
         - create:
+            file: resources/owner.yaml
+        - create:
             file: resources/company.yaml
         - create:
             file: resources/person.yaml
@@ -120,6 +122,59 @@ spec:
               - check:
                   ($error != null): true
                   (contains($error, 'Duplicate value')): true
+
+    - name: reject-unknown-references
+      description: |
+        An Opportunity's Company and People must exist, and its People must work
+        for its Company, on create and when People are added. Its Company can't
+        change: a sale to another Company is a new Opportunity.
+      try:
+        - create:
+            file: resources/other-company.yaml
+        - create:
+            file: resources/other-person.yaml
+        - create:
+            file: resources/opportunity-unknown-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef.name')): true
+                  (contains($error, 'Company not found')): true
+        - create:
+            file: resources/opportunity-unknown-owner.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.ownerRef.name')): true
+                  (contains($error, 'User not found')): true
+        - create:
+            file: resources/opportunity-unknown-person.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRefs[0].name')): true
+                  (contains($error, 'Person not found')): true
+        - create:
+            file: resources/opportunity-person-from-other-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRefs[0].name')): true
+                  (contains($error, 'Person works for Company "initrode"')): true
+        - patch:
+            file: resources/patch-person-from-other-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.personRefs[1].name')): true
+                  (contains($error, 'Person works for Company "initrode"')): true
+        - patch:
+            file: resources/patch-company.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.companyRef')): true
+                  (contains($error, 'a new Opportunity')): true
 
     - name: delete
       description: Deleting an Opportunity removes it.

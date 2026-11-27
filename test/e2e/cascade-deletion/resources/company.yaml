@@ -1,0 +1,6 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Company
+metadata:
+  name: hooli-xyz
+spec:
+  displayName: HooliXYZ

@@ -1,0 +1,7 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Opportunity
+metadata:
+  name: initech-initial-sale
+spec:
+  companyRef:
+    name: initrode

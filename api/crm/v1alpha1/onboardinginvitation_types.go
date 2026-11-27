@@ -37,12 +37,13 @@ const (
 // client sets it, and none of it can change afterwards. Everything CRM does
 // with the invitation is in status.
 //
-// TODO(#11): reject an onboarding or Person that doesn't exist, and a Person
-// whose Company isn't the onboarding's Company.
+// The onboarding and Person must exist, and the Person must work for the
+// onboarding's Company.
 type OnboardingInvitationSpec struct {
 	// OnboardingRef is the onboarding the invitation is for. It can't be
 	// changed. Resending or replacing an invitation continues the same
-	// onboarding.
+	// onboarding. The onboarding owns the invitation: deleting the onboarding
+	// deletes the invitation.
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="onboardingRef can't be changed"
@@ -79,6 +80,9 @@ type OnboardingInvitationSpec struct {
 // TODO(#14): record agreement acceptance here or on the onboarding: which
 // agreement version, the redeeming User, and when. It belongs to this
 // recipient, so a replacement starts without it.
+//
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.inviterRef) || (has(self.inviterRef) && self.inviterRef == oldSelf.inviterRef)",message="inviterRef can't be changed or removed once set"
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.redeemedUserRef) || (has(self.redeemedUserRef) && self.redeemedUserRef == oldSelf.redeemedUserRef)",message="redeemedUserRef can't be changed or removed once set"
 type OnboardingInvitationStatus struct {
 	// Phase is where the invitation is in its lifecycle. The conditions give
 	// the details, such as why it was revoked.
@@ -91,16 +95,18 @@ type OnboardingInvitationStatus struct {
 	Phase InvitationPhase `json:"phase,omitempty"`
 
 	// InviterRef is the staff User who sent the invitation, taken from the
-	// authenticated request, never from the request body.
+	// authenticated request, never from the request body. The User must
+	// exist. Once set, it can't be changed or removed.
 	//
-	// TODO(#13): set by the send action.
+	// TODO(#13): when staff send the onboarding, CRM's webhook records the
+	// requester on it, and the controller copies that into this field.
 	//
 	// +optional
 	InviterRef *UserReference `json:"inviterRef,omitempty"`
 
 	// SentTime is when the invitation was sent.
 	//
-	// TODO(#13): set by the send action.
+	// TODO(#13): set when CRM sends the invitation.
 	//
 	// +optional
 	SentTime *metav1.Time `json:"sentTime,omitempty"`
@@ -119,7 +125,8 @@ type OnboardingInvitationStatus struct {
 	// signed-in User whose verified email matched recipientEmail. While this
 	// is the onboarding's current invitation, only this User can work on the
 	// onboarding, and on completion this User becomes the organization's
-	// first administrator.
+	// first administrator. The User must exist, have recipientEmail as their
+	// email, and have verified it. Once set, it can't be changed or removed.
 	//
 	// TODO(#12, #14): set by CRM when the recipient starts the onboarding.
 	//

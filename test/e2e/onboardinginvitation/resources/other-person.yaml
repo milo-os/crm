@@ -1,0 +1,10 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: Person
+metadata:
+  name: jian-yang
+spec:
+  givenName: Jian
+  familyName: Yang
+  email: jian@bachmanity.example
+  companyRef:
+    name: bachmanity

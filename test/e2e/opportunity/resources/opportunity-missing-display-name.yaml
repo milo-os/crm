@@ -6,4 +6,4 @@ spec:
   companyRef:
     name: initech
   ownerRef:
-    name: "340583683847097153"
+    name: e2e-opportunity-owner

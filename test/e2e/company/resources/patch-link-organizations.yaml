@@ -4,5 +4,5 @@ metadata:
   name: acme
 spec:
   organizationRefs:
-    - name: acme
-    - name: acme-eu
+    - name: e2e-acme
+    - name: e2e-acme-eu

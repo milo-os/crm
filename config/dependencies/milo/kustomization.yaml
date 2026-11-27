@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Milo's Organization and User CRDs, so CRM's webhooks can check references to
+# them in the kind test cluster. On the Milo control plane they already exist;
+# this is for development and end-to-end tests only. Sourced directly from
+# milo-os/milo so they can't drift from the real definitions. Keep the tag
+# equal to the go.miloapis.com/milo version in go.mod; Renovate bumps both
+# together.
+resources:
+  - https://raw.githubusercontent.com/milo-os/milo/refs/tags/v0.39.0/config/crd/bases/resourcemanager/resourcemanager.miloapis.com_organizations.yaml
+  - https://raw.githubusercontent.com/milo-os/milo/refs/tags/v0.39.0/config/crd/bases/iam/iam.miloapis.com_users.yaml

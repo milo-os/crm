@@ -31,6 +31,8 @@ spec:
     - name: link-organizations
       description: A Company can reference more than one organization.
       try:
+        - create:
+            file: resources/organizations.yaml
         - patch:
             file: resources/patch-link-organizations.yaml
         - assert:
@@ -108,6 +110,24 @@ spec:
               - check:
                   ($error != null): true
                   (contains($error, 'Duplicate value')): true
+
+    - name: reject-unknown-organizations
+      description: A Company can only link organizations that exist, on create and when linking more.
+      try:
+        - create:
+            file: resources/company-unknown-organization.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.organizationRefs[0].name')): true
+                  (contains($error, 'Organization not found')): true
+        - patch:
+            file: resources/patch-link-unknown-organization.yaml
+            expect:
+              - check:
+                  ($error != null): true
+                  (contains($error, 'spec.organizationRefs[2].name')): true
+                  (contains($error, 'Organization not found')): true
 
     - name: delete
       description: Deleting a Company removes only the CRM record.

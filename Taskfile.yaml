@@ -255,7 +255,18 @@ tasks:
 
         echo ""
         echo "----------------------------------------------------------------------"
-        echo "Stage 2: Deploying crm (Dev Overlay)"
+        echo "Stage 2: Installing the Milo and Billing CRDs CRM references"
+        echo "----------------------------------------------------------------------"
+        task test-infra:kubectl -- apply -k config/dependencies/milo
+        task test-infra:kubectl -- apply -k config/dependencies/billing
+        task test-infra:kubectl -- wait --for=condition=established \
+          crd/organizations.resourcemanager.miloapis.com \
+          crd/users.iam.miloapis.com \
+          crd/billingaccounts.billing.miloapis.com --timeout=120s
+
+        echo ""
+        echo "----------------------------------------------------------------------"
+        echo "Stage 3: Deploying crm (Dev Overlay)"
         echo "----------------------------------------------------------------------"
         until task test-infra:kubectl -- apply -k config/overlays/dev; do
           echo "  - Apply failed (likely webhook propagation), retrying in 5s..."
@@ -264,7 +275,7 @@ tasks:
 
         echo ""
         echo "----------------------------------------------------------------------"
-        echo "Stage 3: Verification"
+        echo "Stage 4: Verification"
         echo "----------------------------------------------------------------------"
         task test-infra:kubectl -- rollout status -n crm-system deployment/crm-manager --timeout=120s || echo "  - Controller not ready yet"
 

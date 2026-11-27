@@ -1,0 +1,12 @@
+apiVersion: crm.miloapis.com/v1alpha1
+kind: OrganizationOnboarding
+metadata:
+  name: sent-onboarding
+spec:
+  organizationDetails:
+    displayName: Hooli XYZ
+  billing:
+    currency: USD
+    paymentArrangement: Card
+status:
+  phase: Invited
