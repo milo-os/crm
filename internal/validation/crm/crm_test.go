@@ -63,13 +63,13 @@ func billingAccount(organization, name string) *billingv1alpha1.BillingAccount {
 func records(t *testing.T) client.Reader {
 	t.Helper()
 	return fake.NewClientBuilder().WithScheme(scheme(t)).WithObjects(
-		company("acme"), company("globex"),
+		linkedCompany("acme", "acme"), linkedCompany("globex", "globex"),
 		person("jane", "acme"), person("hank", "globex"),
 		opportunity("acme-sale", "acme"),
 		onboarding("acme-onboarding", "acme", "acme-sale", ""),
 		onboarding("globex-onboarding", "globex", "globex-sale", ""),
 		invitation("acme-onboarding", "jane"),
-		organization("acme"),
+		organization("acme"), organization("globex"), organization("initech"),
 		billingAccount("acme", "acme-billing"),
 		user(staffUser, "alice@datum.example", iamv1alpha1.EmailVerificationStateVerified),
 		user("jane-user", "Jane@Example.com", iamv1alpha1.EmailVerificationStateVerified),
@@ -89,6 +89,15 @@ func failingReader(t *testing.T) client.Reader {
 
 func company(name string) *crmv1alpha1.Company {
 	return &crmv1alpha1.Company{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: crmv1alpha1.CompanySpec{DisplayName: name}}
+}
+
+// linkedCompany is a Company that links the given Organizations.
+func linkedCompany(name string, organizations ...string) *crmv1alpha1.Company {
+	co := company(name)
+	for _, o := range organizations {
+		co.Spec.OrganizationRefs = append(co.Spec.OrganizationRefs, crmv1alpha1.OrganizationReference{Name: o})
+	}
+	return co
 }
 
 func person(name, company string) *crmv1alpha1.Person {
@@ -393,6 +402,12 @@ func TestValidateOnboardingStatus(t *testing.T) {
 			s.OrganizationRef = &crmv1alpha1.OrganizationReference{Name: "acme"}
 			s.BillingAccountRef = &crmv1alpha1.BillingAccountReference{Name: "acme-billing"}
 		}},
+		{name: "organization of another Company", change: func(s *crmv1alpha1.OrganizationOnboardingStatus) {
+			s.OrganizationRef = &crmv1alpha1.OrganizationReference{Name: "globex"}
+		}, want: []string{`status.organizationRef.name: Invalid value: "globex": Organization isn't linked to the onboarding's Company "acme"`}},
+		{name: "organization no Company links", change: func(s *crmv1alpha1.OrganizationOnboardingStatus) {
+			s.OrganizationRef = &crmv1alpha1.OrganizationReference{Name: "initech"}
+		}, want: []string{`Organization isn't linked to the onboarding's Company "acme"`}},
 		{name: "missing organization", change: func(s *crmv1alpha1.OrganizationOnboardingStatus) {
 			s.OrganizationRef = &crmv1alpha1.OrganizationReference{Name: "org-8f3k2"}
 		}, want: []string{`status.organizationRef.name: Invalid value: "org-8f3k2": Organization not found`}},

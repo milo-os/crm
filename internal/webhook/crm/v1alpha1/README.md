@@ -39,6 +39,7 @@ it.
 | An invitation's Person works for the onboarding's Company | on create |
 | An invitation's `recipientEmail` is its Person's email (ignoring case) | on create |
 | An onboarding's `currentInvitationRef` is an invitation for that onboarding | when set or changed |
+| An onboarding's `organizationRef` is linked in its Company's `organizationRefs`, so it can't record another customer's Organization | when set |
 | An onboarding's `billingAccountRef` is in its organization's namespace (`organization-<name>`), so `organizationRef` must be set | when either changes |
 | An invitation's `redeemedUserRef` is a User whose email is `recipientEmail` and who has verified it | when set |
 
@@ -94,7 +95,7 @@ Status is written only by CRM:
 | Field | Can change? | Checked by |
 |---|---|---|
 | `currentInvitationRef` | Yes: resend and replace move it | webhook: exists, and is an invitation for this onboarding |
-| `organizationRef` | Set once | CEL: can't change or be removed; webhook: the Organization exists |
+| `organizationRef` | Set once | CEL: can't change or be removed; webhook: the Organization exists and the onboarding's Company links it (CRM links it there first) |
 | `billingAccountRef` | Set once | CEL: can't change or be removed; webhook: exists in the organization's namespace |
 | `invoiceAuthorization.userRef` | Yes | webhook: the User exists |
 

@@ -375,7 +375,9 @@ type OrganizationOnboardingStatus struct {
 
 	// OrganizationRef is the organization this onboarding created. It stays
 	// linked after completion; deleting the onboarding never deletes it. The
-	// organization must exist. Once set, it can't be changed or removed.
+	// organization must exist and be one the onboarding's Company links in
+	// spec.organizationRefs, so CRM links it there first. Once set, it can't
+	// be changed or removed.
 	//
 	// TODO(#15): set when CRM creates the organization.
 	//

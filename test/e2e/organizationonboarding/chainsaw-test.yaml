@@ -64,8 +64,9 @@ spec:
         Status sent with the spec on create is dropped, so clients can't set
         completion state. Status written through the status subresource, as CRM
         does, is validated, including that its references exist: the current
-        invitation must be for this onboarding, and the billing account must be
-        in the organization's namespace. Once set, the organization and billing
+        invitation must be for this onboarding, the organization must be linked
+        to the onboarding's Company, and the billing account must be in the
+        organization's namespace. Once set, the organization and billing
         account can't be changed or removed.
       try:
         - create:
@@ -85,6 +86,16 @@ spec:
             file: resources/invitation.yaml
         - create:
             file: resources/organization.yaml
+        - script:
+            content: >-
+              kubectl patch organizationonboarding status-on-create --subresource=status --type=merge
+              -p '{"status":{"organizationRef":{"name":"e2e-hooli"}}}'
+            check:
+              ($error != null): true
+              (contains($stderr, 'status.organizationRef.name')): true
+              (contains($stderr, 'linked to the onboarding')): true
+        - patch:
+            file: resources/patch-company-link-organization.yaml
         - script:
             content: >-
               kubectl patch organizationonboarding status-on-create --subresource=status --type=merge

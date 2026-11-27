@@ -49,8 +49,9 @@ func ValidateOrganizationOnboardingUpdate(ctx context.Context, c client.Reader, 
 
 // validateOnboardingStatus checks the status references that changed: the
 // current invitation must exist and be for this onboarding, the organization
-// must exist, the billing account must exist in that organization's
-// namespace, and the User who authorized invoicing must exist.
+// must exist and be linked to the onboarding's Company, the billing account
+// must exist in that organization's namespace, and the User who authorized
+// invoicing must exist.
 func validateOnboardingStatus(ctx context.Context, c client.Reader, old *crmv1alpha1.OrganizationOnboardingStatus, onboarding *crmv1alpha1.OrganizationOnboarding) field.ErrorList {
 	var allErrs field.ErrorList
 	status := &onboarding.Status
@@ -69,7 +70,12 @@ func validateOnboardingStatus(ctx context.Context, c client.Reader, old *crmv1al
 
 	organizationChanged := !equality.Semantic.DeepEqual(status.OrganizationRef, old.OrganizationRef)
 	if ref := status.OrganizationRef; ref != nil && organizationChanged {
-		allErrs = append(allErrs, getOrganization(ctx, c, path.Child("organizationRef"), *ref)...)
+		refPath := path.Child("organizationRef")
+		errs := getOrganization(ctx, c, refPath, *ref)
+		allErrs = append(allErrs, errs...)
+		if len(errs) == 0 {
+			allErrs = append(allErrs, organizationOfCompany(ctx, c, refPath.Child("name"), ref.Name, onboarding.Spec.CompanyRef)...)
+		}
 	}
 
 	billingChanged := !equality.Semantic.DeepEqual(status.BillingAccountRef, old.BillingAccountRef)
@@ -89,4 +95,22 @@ func validateOnboardingStatus(ctx context.Context, c client.Reader, old *crmv1al
 	}
 
 	return allErrs
+}
+
+// organizationOfCompany reports an Organization the onboarding's Company
+// doesn't link in spec.organizationRefs, so an onboarding can never record
+// another customer's Organization. CRM links the Organization to the Company
+// before recording it on the onboarding.
+func organizationOfCompany(ctx context.Context, c client.Reader, path *field.Path, organization string, ref crmv1alpha1.CompanyReference) field.ErrorList {
+	company, errs := getCompany(ctx, c, field.NewPath("spec", "companyRef"), ref)
+	if len(errs) > 0 {
+		return errs
+	}
+	for _, linked := range company.Spec.OrganizationRefs {
+		if linked.Name == organization {
+			return nil
+		}
+	}
+	return field.ErrorList{field.Invalid(path, organization, fmt.Sprintf(
+		"Organization isn't linked to the onboarding's Company %q; link it in the Company's organizationRefs first", ref.Name))}
 }
