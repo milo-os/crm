@@ -48,7 +48,7 @@ jobs:
       - name: Install kubectl
         uses: azure/setup-kubectl@v5
         with:
-          version: v1.37.2
+          version: v1.37.3
 
       - name: Install kind
         uses: helm/kind-action@v1
